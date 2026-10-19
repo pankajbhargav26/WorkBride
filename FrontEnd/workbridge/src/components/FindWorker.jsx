@@ -1,6 +1,4 @@
 import React, { useState } from "react";
-import Header from "./header";
-import Footer from "./footer";
 import "./FindWorker.css";
 
 const workers = [
@@ -133,10 +131,7 @@ function FindWorker() {
     });
 
   return (
-    <>
-      <Header />
-
-      <main className="find-worker-page">
+    <main className="find-worker-page">
 
         {/* ================= HERO ================= */}
 
@@ -519,9 +514,6 @@ function FindWorker() {
         </section>
 
       </main>
-
-      <Footer />
-    </>
   );
 }
 

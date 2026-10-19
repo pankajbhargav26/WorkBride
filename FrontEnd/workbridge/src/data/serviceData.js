@@ -2,138 +2,51 @@ const servicesData = {
   plumbing: {
     name: "Plumbing",
     icon: "🔧",
-    description: "Find trusted plumbers for all your home plumbing needs.",
-
-    subServices: [
-      "Tap Repair",
-      "Pipe Leakage",
-      "Bathroom Fitting",
-      "Toilet Repair",
-      "Water Tank",
-      "Geyser Repair",
-      "Sink Repair",
-      "Drainage Problem"
-    ]
+    description: "Leakage, tap, pipe and bathroom fitting repairs by experts.",
+    subServices: ["Tap Repair", "Pipe Leakage", "Bathroom Fitting", "Water Tank Cleaning"],
   },
-
   electrical: {
     name: "Electrical",
     icon: "⚡",
-    description: "Hire experienced electricians for your electrical needs.",
-
-    subServices: [
-      "Fan Repair",
-      "Switch Repair",
-      "Wiring",
-      "Light Installation",
-      "Inverter Repair",
-      "MCB Repair",
-      "Socket Repair",
-      "Meter Installation"
-    ]
+    description: "Wiring, switches, fans and all electrical repairs.",
+    subServices: ["Fan Repair", "Switch Board", "Wiring", "Inverter Installation"],
   },
-
   cleaning: {
     name: "Cleaning",
     icon: "🧹",
-    description: "Get professional cleaning services at your doorstep.",
-
-    subServices: [
-      "Home Cleaning",
-      "Bathroom Cleaning",
-      "Kitchen Cleaning",
-      "Sofa Cleaning",
-      "Deep Cleaning",
-      "Office Cleaning",
-      "Floor Cleaning",
-      "Water Tank Cleaning"
-    ]
+    description: "Home, kitchen and bathroom deep cleaning services.",
+    subServices: ["Home Cleaning", "Kitchen Cleaning", "Bathroom Cleaning", "Sofa Cleaning"],
   },
-
-  "ac-service": {
-    name: "AC & Appliances",
-    icon: "❄️",
-    description: "Professional AC and home appliance repair services.",
-
-    subServices: [
-      "AC Repair",
-      "AC Service",
-      "AC Installation",
-      "Refrigerator Repair",
-      "Washing Machine Repair",
-      "Microwave Repair",
-      "Cooler Repair",
-      "Geyser Repair"
-    ]
-  },
-
   painting: {
     name: "Painting",
     icon: "🎨",
-    description: "Give your home a fresh look with professional painters.",
-
-    subServices: [
-      "Home Painting",
-      "Wall Painting",
-      "Room Painting",
-      "Waterproofing",
-      "Texture Painting",
-      "Exterior Painting",
-      "Interior Painting",
-      "Ceiling Painting"
-    ]
+    description: "Interior and exterior painting by skilled painters.",
+    subServices: ["Interior Painting", "Exterior Painting", "Waterproofing", "Wall Putty"],
   },
-
-  carpenter: {
+  "ac-repair": {
+    name: "AC Repair",
+    icon: "❄️",
+    description: "AC installation, repair and servicing.",
+    subServices: ["AC Service", "Gas Refill", "AC Installation", "AC Uninstallation"],
+  },
+  carpentry: {
     name: "Carpentry",
+    icon: "🪚",
+    description: "Furniture repair, door fitting and custom woodwork.",
+    subServices: ["Furniture Repair", "Door Fitting", "Bed Repair", "Custom Furniture"],
+  },
+  handyman: {
+    name: "Handyman",
     icon: "🔨",
-    description: "Hire skilled carpenters for furniture and home repairs.",
-
-    subServices: [
-      "Furniture Repair",
-      "Door Repair",
-      "Furniture Assembly",
-      "Wood Polishing",
-      "Bed Repair",
-      "Table Repair",
-      "Cabinet Repair",
-      "Shelf Installation"
-    ]
+    description: "Small repairs and odd jobs around your home.",
+    subServices: ["Curtain Rod Fitting", "TV Mounting", "Furniture Assembly", "Drilling"],
   },
-
-  shifting: {
-    name: "Packers & Movers",
+  moving: {
+    name: "Moving",
     icon: "🚚",
-    description: "Reliable moving and shifting services near you.",
-
-    subServices: [
-      "Home Shifting",
-      "Office Shifting",
-      "Local Shifting",
-      "Loading & Unloading",
-      "Furniture Moving",
-      "Packing Service",
-      "Vehicle Transport",
-      "Storage Service"
-    ]
+    description: "Safe and reliable packers and movers.",
+    subServices: ["Home Shifting", "Office Shifting", "Local Moving", "Packing Only"],
   },
-
-  gardening: {
-    name: "Gardening",
-    icon: "🌿",
-    description: "Professional gardening and plant care services.",
-
-    subServices: [
-      "Garden Maintenance",
-      "Lawn Maintenance",
-      "Plant Care",
-      "Tree Trimming",
-      "Plant Installation",
-      "Terrace Gardening",
-      "Garden Cleaning",
-      "Pest Control"
-    ]
-  }
 };
 
 export default servicesData;

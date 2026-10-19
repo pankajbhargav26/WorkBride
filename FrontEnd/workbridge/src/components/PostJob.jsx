@@ -1,6 +1,4 @@
 import React, { useState, useMemo } from "react";
-import Header from "./header";
-import Footer from "./footer";
 import "./PostJob.css";
 
 const SERVICES = [
@@ -122,8 +120,6 @@ function PostJob() {
 
   return (
     <>
-      <Header />
-
       <main className="post-job-page">
         {/* ================= HERO ================= */}
         <section className="post-job-hero">
@@ -198,7 +194,7 @@ function PostJob() {
                           onChange={handleChange}
                           required
                         />
-                        <span className="service-icon">{s.icon}</span>
+                        <span className="post-job-service-icon">{s.icon}</span>
                         <span className="service-label">{s.label}</span>
                         <span className="service-check">✓</span>
                       </label>
@@ -515,7 +511,6 @@ function PostJob() {
           </div>
         </section>
       </main>
-
       {/* ================= SUCCESS MODAL ================= */}
       {submitted && (
         <div className="success-overlay" onClick={() => setSubmitted(false)}>
@@ -540,7 +535,6 @@ function PostJob() {
         </div>
       )}
 
-      <Footer />
     </>
   );
 }
