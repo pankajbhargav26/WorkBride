@@ -24,6 +24,8 @@ app.get("/api/health", (req, res) => {
   });
 });
 
+app.use("/api/jobs", require("./routes/jobRoutes"));
+
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
