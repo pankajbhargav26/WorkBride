@@ -625,6 +625,17 @@
   background: linear-gradient(135deg, #f8f6ff, #f2f6ff);
 }
 
+.post-job-error {
+  margin: 0 38px 28px;
+  padding: 14px 16px;
+  border: 1px solid #f1b8b8;
+  border-radius: 12px;
+  background: #fff4f4;
+  color: #a32222;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
 .post-job-submit strong {
   display: block;
   margin-bottom: 4px;
@@ -960,6 +971,27 @@
 
 .success-card .post-job-button {
   width: 100%;
+}
+
+.success-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.success-secondary-button {
+  padding: 11px 16px;
+  border: 1px solid #e4e2ee;
+  border-radius: 12px;
+  background: white;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.success-secondary-button:hover {
+  background: #f8f7fc;
 }
 
 /* =========================================================

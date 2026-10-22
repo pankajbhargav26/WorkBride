@@ -9,10 +9,15 @@ const serviceCategories = Job.schema.path("serviceCategory").enumValues;
 router.post("/", authenticateCustomer, async (req, res) => {
   const {
     serviceCategory,
+    title,
     problemDescription,
     address,
     preferredDate,
-    preferredTime
+    preferredTime,
+    urgency,
+    budget,
+    customerName,
+    phone
   } = req.body || {};
 
   const requiredFields = {
@@ -51,14 +56,40 @@ router.post("/", authenticateCustomer, async (req, res) => {
     });
   }
 
+  if (urgency !== undefined && !["Urgent", "Within a week", "Flexible"].includes(urgency)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid urgency"
+    });
+  }
+
+  if (budget !== undefined && (!Number.isFinite(budget) || budget < 0)) {
+    return res.status(400).json({
+      success: false,
+      message: "budget must be a non-negative number"
+    });
+  }
+
+  if (phone !== undefined && !/^\d{10}$/.test(phone)) {
+    return res.status(400).json({
+      success: false,
+      message: "phone must contain exactly 10 digits"
+    });
+  }
+
   try {
     const job = await Job.create({
       customerId: req.user.id,
       serviceCategory: serviceCategory.trim(),
+      title: title && title.trim(),
       problemDescription: problemDescription.trim(),
       address: address.trim(),
       preferredDate: parsedPreferredDate,
-      preferredTime: preferredTime.trim()
+      preferredTime: preferredTime.trim(),
+      urgency,
+      budget,
+      customerName: customerName && customerName.trim(),
+      phone: phone && phone.trim()
     });
 
     return res.status(201).json({

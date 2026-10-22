@@ -11,6 +11,7 @@ import Services from "./components/Services.jsx";
 import Cities from "./components/Cities.jsx";
 import FindWorker from "./components/FindWorker.jsx";
 import PostJob from "./components/PostJob.jsx";
+import MyJobs from "./components/MyJobs.jsx";
 import Help from "./components/Help.jsx";
 import ServiceDetails from "./components/ServiceDetails.jsx";
 
@@ -38,6 +39,8 @@ function App() {
         <Route path="/cities" element={<Cities />} />
         <Route path="/workers" element={<FindWorker />} />
         <Route path="/post-job" element={<PostJob />} />
+        <Route path="/my-jobs" element={<MyJobs />} />
+        <Route path="/my-jobs/:id" element={<MyJobs />} />
         <Route path="/help" element={<Help />} />
         <Route path="/services/:serviceName" element={<ServiceDetails />} />
       </Routes>

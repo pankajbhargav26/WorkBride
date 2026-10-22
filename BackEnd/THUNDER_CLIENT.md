@@ -2,7 +2,7 @@
 
 ## Setup
 
-Configure `MONGO_URI` and `JWT_SECRET` in the backend `.env` file. The login API must sign a JWT with `JWT_SECRET` and include the customer's MongoDB ID as either the `id` or `sub` claim. Send the resulting token as a Bearer token.
+Configure `MONGO_URI` and `JWT_SECRET` in the backend `.env` file. The customer login API must sign a JWT with the same `JWT_SECRET` and include the customer's MongoDB ID as either the `id` or `sub` claim. The frontend reads that token from `localStorage.token` or `localStorage.accessToken`. Send it as a Bearer token.
 
 Base URL: `http://localhost:5000`
 
@@ -22,14 +22,19 @@ Body:
 ```json
 {
   "serviceCategory": "Electrical",
+  "title": "Repair a wall socket",
   "problemDescription": "A wall socket is not working",
   "address": "12 MG Road, Pune",
   "preferredDate": "2026-11-05T00:00:00.000Z",
-  "preferredTime": "10:00 AM"
+  "preferredTime": "10:00 AM",
+  "urgency": "Flexible",
+  "budget": 500,
+  "customerName": "Customer Name",
+  "phone": "9876543210"
 }
 ```
 
-Expected success status: `201 Created`. `customerId` is taken from the authenticated user, and `charges` defaults to `200`.
+Expected success status: `201 Created`. `customerId` is taken from the authenticated user, and `charges` defaults to `200`. Title, urgency, budget, customer name, and phone are optional API fields.
 
 ## Get my jobs
 

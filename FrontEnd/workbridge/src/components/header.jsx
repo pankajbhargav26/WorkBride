@@ -1,4 +1,3 @@
-import React from "react";
 import { Link, NavLink } from "react-router-dom";
 import "./header.css";
 
@@ -16,6 +15,7 @@ function Header() {
         <NavLink to="/how-it-works">How It Works</NavLink>
         <NavLink to="/for-pros">For Pros</NavLink>
         <NavLink to="/cities">Cities</NavLink>
+        <NavLink to="/my-jobs">My Jobs</NavLink>
         <NavLink to="/help">Help</NavLink>
       </nav>
 

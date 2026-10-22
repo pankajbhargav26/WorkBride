@@ -1,16 +1,16 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
+import { Link } from "react-router-dom";
+import { createJob } from "../api/jobs.js";
 import "./PostJob.css";
 
 const SERVICES = [
-  { value: "plumbing", icon: "🔧", label: "Plumbing" },
-  { value: "electrical", icon: "⚡", label: "Electrical" },
-  { value: "cleaning", icon: "🧹", label: "Cleaning" },
-  { value: "ac-service", icon: "❄️", label: "AC & Appliances" },
-  { value: "painting", icon: "🎨", label: "Painting" },
-  { value: "carpentry", icon: "🔨", label: "Carpentry" },
-  { value: "shifting", icon: "🚚", label: "Packers & Movers" },
-  { value: "gardening", icon: "🌿", label: "Gardening" },
-  { value: "other", icon: "✨", label: "Other" },
+  { value: "Electrical", icon: "⚡", label: "Electrical" },
+  { value: "Plumbing", icon: "🔧", label: "Plumbing" },
+  { value: "AC Repair", icon: "❄️", label: "AC Repair" },
+  { value: "Cleaning", icon: "🧹", label: "Cleaning" },
+  { value: "Painting", icon: "🎨", label: "Painting" },
+  { value: "Carpentry", icon: "🔨", label: "Carpentry" },
+  { value: "Handyman", icon: "🛠️", label: "Handyman" },
 ];
 
 const URGENCY = [
@@ -32,6 +32,7 @@ const INITIAL = {
   description: "",
   location: "",
   date: "",
+  time: "",
   urgency: "Flexible",
   budget: "",
   name: "",
@@ -39,7 +40,6 @@ const INITIAL = {
 };
 
 const MAX_DESC = 500;
-const MAX_PHOTOS = 5;
 
 const CONFETTI = Array.from({ length: 28 }, (_, i) => ({
   left: `${(i * 37) % 100}%`,
@@ -62,14 +62,14 @@ function SectionHeading({ num, title, text }) {
 
 function PostJob() {
   const [formData, setFormData] = useState(INITIAL);
-  const [photos, setPhotos] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   const today = new Date().toISOString().split("T")[0];
 
   const progress = useMemo(() => {
-    const required = ["service", "title", "description", "location", "name", "phone"];
+    const required = ["service", "title", "description", "location", "date", "time", "name", "phone"];
     const done = required.filter((k) => String(formData[k]).trim() !== "").length;
     return Math.round((done / required.length) * 100);
   }, [formData]);
@@ -83,39 +83,32 @@ function PostJob() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handlePhotos = (e) => {
-    const files = Array.from(e.target.files).filter((f) => f.size <= 5 * 1024 * 1024);
-    const next = files.map((file) => ({
-      file,
-      url: URL.createObjectURL(file),
-      id: `${file.name}-${file.lastModified}-${Math.random()}`,
-    }));
-    setPhotos((prev) => [...prev, ...next].slice(0, MAX_PHOTOS));
-    e.target.value = "";
-  };
-
-  const removePhoto = (id) => {
-    setPhotos((prev) => {
-      const target = prev.find((p) => p.id === id);
-      if (target) URL.revokeObjectURL(target.url);
-      return prev.filter((p) => p.id !== id);
-    });
-  };
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitError("");
     setSubmitting(true);
 
-    // Replace this timeout with your real API call (axios.post) later
-    setTimeout(() => {
-      console.log("Job Posted:", { ...formData, photos: photos.map((p) => p.file) });
-      photos.forEach((p) => URL.revokeObjectURL(p.url));
-      setPhotos([]);
+    try {
+      await createJob({
+        serviceCategory: formData.service,
+        title: formData.title.trim(),
+        problemDescription: formData.description.trim(),
+        address: formData.location.trim(),
+        preferredDate: formData.date,
+        preferredTime: formData.time,
+        urgency: formData.urgency,
+        ...(formData.budget ? { budget: Number(formData.budget) } : {}),
+        customerName: formData.name.trim(),
+        phone: formData.phone
+      });
       setFormData(INITIAL);
-      setSubmitting(false);
       setSubmitted(true);
       window.scrollTo({ top: 0, behavior: "smooth" });
-    }, 900);
+    } catch (error) {
+      setSubmitError(error.message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -281,13 +274,29 @@ function PostJob() {
 
                   <div className="form-row">
                     <div className="form-group">
-                      <label>Preferred Date</label>
+                      <label>
+                        Preferred Date <span>*</span>
+                      </label>
                       <input
                         type="date"
                         name="date"
                         min={today}
                         value={formData.date}
                         onChange={handleChange}
+                        required
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>
+                        Preferred Time <span>*</span>
+                      </label>
+                      <input
+                        type="time"
+                        name="time"
+                        value={formData.time}
+                        onChange={handleChange}
+                        required
                       />
                     </div>
 
@@ -333,40 +342,10 @@ function PostJob() {
                   </div>
                 </div>
 
-                {/* 05 PHOTOS */}
+                {/* 05 CONTACT */}
                 <div className="form-section">
                   <SectionHeading
                     num="05"
-                    title="Add photos"
-                    text="Photos can help professionals understand the job better."
-                  />
-
-                  <label className="upload-box">
-                    <input type="file" accept="image/*" multiple onChange={handlePhotos} />
-                    <div className="upload-icon">📷</div>
-                    <strong>Upload job photos</strong>
-                    <span>Click to browse or drag and drop</span>
-                    <small>JPG, PNG up to 5MB · max {MAX_PHOTOS} photos</small>
-                  </label>
-
-                  {photos.length > 0 && (
-                    <div className="photo-grid">
-                      {photos.map((p) => (
-                        <div className="photo-thumb" key={p.id}>
-                          <img src={p.url} alt="Job upload preview" />
-                          <button type="button" onClick={() => removePhoto(p.id)} aria-label="Remove photo">
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* 06 CONTACT */}
-                <div className="form-section">
-                  <SectionHeading
-                    num="06"
                     title="Your contact details"
                     text="Professionals can contact you about your job."
                   />
@@ -427,6 +406,11 @@ function PostJob() {
                     )}
                   </button>
                 </div>
+                {submitError && (
+                  <div className="post-job-error" role="alert">
+                    {submitError}
+                  </div>
+                )}
               </form>
             </div>
 
@@ -525,12 +509,16 @@ function PostJob() {
             <div className="success-check">✓</div>
             <h3>Job posted successfully!</h3>
             <p>
-              Nearby professionals can now see your job. You'll be contacted on your
-              phone number as soon as someone responds.
+              Your job has been saved. You can see its details any time in My Jobs.
             </p>
-            <button className="post-job-button" onClick={() => setSubmitted(false)}>
-              Post another job <span>→</span>
-            </button>
+            <div className="success-actions">
+              <Link className="post-job-button" to="/my-jobs" onClick={() => setSubmitted(false)}>
+                See My Jobs <span>→</span>
+              </Link>
+              <button className="success-secondary-button" onClick={() => setSubmitted(false)}>
+                Post another job
+              </button>
+            </div>
           </div>
         </div>
       )}

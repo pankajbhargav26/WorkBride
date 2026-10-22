@@ -22,10 +22,16 @@ const jobSchema = new mongoose.Schema(
       enum: serviceCategories,
       required: true
     },
+    title: {
+      type: String,
+      trim: true,
+      maxlength: 120
+    },
     problemDescription: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
+      maxlength: 2000
     },
     address: {
       type: String,
@@ -40,6 +46,25 @@ const jobSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true
+    },
+    urgency: {
+      type: String,
+      enum: ["Urgent", "Within a week", "Flexible"],
+      default: "Flexible"
+    },
+    budget: {
+      type: Number,
+      min: 0
+    },
+    customerName: {
+      type: String,
+      trim: true,
+      maxlength: 120
+    },
+    phone: {
+      type: String,
+      trim: true,
+      match: /^\d{10}$/
     },
     charges: {
       type: Number,
