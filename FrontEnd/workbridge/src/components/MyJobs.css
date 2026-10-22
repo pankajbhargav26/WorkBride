@@ -182,6 +182,68 @@
   font-size: 12px;
 }
 
+.admin-jobs-total {
+  width: min(920px, 100%);
+  margin: 0 auto 16px;
+  color: #686779;
+  font-size: 14px;
+}
+
+.admin-job-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 20px 0 0;
+}
+
+.admin-job-facts div {
+  min-width: 0;
+  padding: 12px;
+  border-radius: 10px;
+  background: #f8f7fc;
+}
+
+.admin-job-facts dt {
+  margin-bottom: 5px;
+  color: #777587;
+  font-size: 12px;
+}
+
+.admin-job-facts dd {
+  margin: 0;
+  color: #242332;
+  font-size: 13px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.admin-jobs-pagination {
+  display: flex;
+  width: min(920px, 100%);
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 24px auto 0;
+  color: #686779;
+  font-size: 14px;
+}
+
+.admin-jobs-pagination button {
+  padding: 10px 15px;
+  border: 1px solid #dedbe9;
+  border-radius: 10px;
+  background: #fff;
+  color: #4f28bd;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.admin-jobs-pagination button:disabled {
+  color: #9997a6;
+  cursor: not-allowed;
+}
+
 @media (max-width: 600px) {
   .my-jobs-page {
     padding: 48px 16px 72px;
@@ -201,5 +263,9 @@
   .my-job-facts {
     grid-template-columns: 1fr;
     gap: 10px;
+  }
+
+  .admin-job-facts {
+    grid-template-columns: 1fr;
   }
 }

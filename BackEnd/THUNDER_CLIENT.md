@@ -60,6 +60,20 @@ Authorization: Bearer <customer-jwt>
 
 Expected success status: `200 OK`. A job that does not exist or belongs to a different customer returns `404 Not Found`.
 
+## Admin: get all customer jobs
+
+**GET** `/api/jobs/admin/all?page=1&limit=20`
+
+Headers:
+
+```text
+Authorization: Bearer <admin-jwt>
+```
+
+The token must belong to a user whose database role is `admin`. Results include customer contact information and are paginated (maximum 100 jobs per page). Customer tokens receive `403 Forbidden`.
+
+To enable the owner dashboard, have a trusted administrator set the owner's existing user account role to `admin` in MongoDB. Do not allow a public registration request to choose its own role. The login API should sign a token containing that user's MongoDB ID as `id` or `sub` and save the token in `localStorage.token` or `localStorage.accessToken`. Open `http://localhost:5173/admin/jobs` while signed in as that admin.
+
 ## Common errors
 
 - `400 Bad Request`: missing/invalid fields, unsupported service category, invalid job ID.

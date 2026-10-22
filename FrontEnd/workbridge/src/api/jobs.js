@@ -60,3 +60,7 @@ export function getMyJobs() {
 export function getMyJob(id) {
   return requestJobs(`/${encodeURIComponent(id)}`);
 }
+
+export function getAllJobs(page = 1, limit = 20) {
+  return requestJobs(`/admin/all?page=${page}&limit=${limit}`);
+}

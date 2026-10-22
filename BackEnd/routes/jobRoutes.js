@@ -2,9 +2,44 @@ const express = require("express");
 const mongoose = require("mongoose");
 const Job = require("../models/Job");
 const authenticateCustomer = require("../middleware/authMiddleware");
+const authenticateAdmin = require("../middleware/adminMiddleware");
 
 const router = express.Router();
 const serviceCategories = Job.schema.path("serviceCategory").enumValues;
+
+router.get("/admin/all", authenticateAdmin, async (req, res) => {
+  const parsedPage = Number.parseInt(req.query.page, 10);
+  const parsedLimit = Number.parseInt(req.query.limit, 10);
+  const page = Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+  const limit = Number.isInteger(parsedLimit) && parsedLimit > 0
+    ? Math.min(parsedLimit, 100)
+    : 20;
+
+  try {
+    const [jobs, total] = await Promise.all([
+      Job.find({})
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit),
+      Job.countDocuments({})
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+      jobs
+    });
+  } catch (error) {
+    console.error("Fetching all jobs for admin failed:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Unable to fetch jobs"
+    });
+  }
+});
 
 router.post("/", authenticateCustomer, async (req, res) => {
   const {
