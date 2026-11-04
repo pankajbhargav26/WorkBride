@@ -48,7 +48,13 @@ function Register() {
 
       setMessage("Registration successful!");
 
+     const userRole = response.data.user?.role || formData.role;
+
+    if (userRole === "technician") {
+      navigate("/worker-dashboard");
+    } else {
       navigate("/");
+    }
     } catch (error) {
       setMessage(
         error.response?.data?.message ||

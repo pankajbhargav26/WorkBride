@@ -6,15 +6,11 @@ const User = require("../models/User");
 
 const router = express.Router();
 
-// ===============================
 // REGISTER API
-// POST /api/auth/register
-// ===============================
 router.post("/register", async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, serviceCategories } = req.body;
 
-    // Validate required fields
     if (!name || !email || !password) {
       return res.status(400).json({
         success: false,
@@ -22,30 +18,38 @@ router.post("/register", async (req, res) => {
       });
     }
 
-    if (typeof password !== "string" || password.length < 8) {
+    if (
+      typeof name !== "string" ||
+      typeof email !== "string" ||
+      typeof password !== "string"
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid input"
+      });
+    }
+
+    if (!name.trim() || !email.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Name and email cannot be empty"
+      });
+    }
+
+    if (password.length < 8) {
       return res.status(400).json({
         success: false,
         message: "Password must be at least 8 characters"
       });
     }
 
-    if (typeof name !== "string" || !name.trim()) {
-      return res.status(400).json({
+    if (!process.env.JWT_SECRET) {
+      return res.status(500).json({
         success: false,
-        message: "Name cannot be empty"
+        message: "Server configuration error"
       });
     }
 
-    if (typeof email !== "string" || !email.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "Valid email is required"
-      });
-    }
-
-    const normalizedEmail = email.trim().toLowerCase();
-
-    // Public registration allows customer and technician only
     const userRole = role || "customer";
 
     if (!["customer", "technician"].includes(userRole)) {
@@ -55,7 +59,24 @@ router.post("/register", async (req, res) => {
       });
     }
 
-    // Check if email already exists
+    let categories = [];
+
+    if (userRole === "technician") {
+      if (
+        serviceCategories !== undefined &&
+        !Array.isArray(serviceCategories)
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Service categories must be an array"
+        });
+      }
+
+      categories = serviceCategories || [];
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
     const existingUser = await User.findOne({
       email: normalizedEmail
     });
@@ -67,30 +88,19 @@ router.post("/register", async (req, res) => {
       });
     }
 
-    // Hash password before saving
     const hashedPassword = await bcrypt.hash(password, 12);
 
     const user = await User.create({
       name: name.trim(),
       email: normalizedEmail,
       password: hashedPassword,
-      role: userRole
+      role: userRole,
+      serviceCategories: categories
     });
 
-    // Check JWT configuration
-    if (!process.env.JWT_SECRET) {
-      console.error("JWT_SECRET is missing in .env");
-
-      return res.status(500).json({
-        success: false,
-        message: "Server configuration error"
-      });
-    }
-
-    // Generate token
     const token = jwt.sign(
       {
-        userId: user._id,
+        userId: user._id.toString(),
         role: user.role
       },
       process.env.JWT_SECRET,
@@ -105,14 +115,23 @@ router.post("/register", async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role
+        role: user.role,
+        serviceCategories: user.serviceCategories
       }
     });
+
   } catch (error) {
     if (error.code === 11000) {
       return res.status(409).json({
         success: false,
         message: "Email is already registered"
+      });
+    }
+
+    if (error.name === "ValidationError") {
+      return res.status(400).json({
+        success: false,
+        message: error.message
       });
     }
 
@@ -125,10 +144,8 @@ router.post("/register", async (req, res) => {
   }
 });
 
-// ===============================
+
 // LOGIN API
-// POST /api/auth/login
-// ===============================
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -150,9 +167,13 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    // Find user by email.
-    // Password is excluded by default in the User model,
-    // so explicitly include it for password comparison.
+    if (!process.env.JWT_SECRET) {
+      return res.status(500).json({
+        success: false,
+        message: "Server configuration error"
+      });
+    }
+
     const user = await User.findOne({
       email: email.trim().toLowerCase()
     }).select("+password");
@@ -164,11 +185,7 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    // Compare entered password with stored hash
-    const isMatch = await bcrypt.compare(
-      password,
-      user.password
-    );
+    const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
       return res.status(401).json({
@@ -177,19 +194,9 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    if (!process.env.JWT_SECRET) {
-      console.error("JWT_SECRET is missing in .env");
-
-      return res.status(500).json({
-        success: false,
-        message: "Server configuration error"
-      });
-    }
-
-    // Generate login token
     const token = jwt.sign(
       {
-        userId: user._id,
+        userId: user._id.toString(),
         role: user.role
       },
       process.env.JWT_SECRET,
@@ -204,9 +211,11 @@ router.post("/login", async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role
+        role: user.role,
+        serviceCategories: user.serviceCategories
       }
     });
+
   } catch (error) {
     console.error("Login error:", error.message);
 

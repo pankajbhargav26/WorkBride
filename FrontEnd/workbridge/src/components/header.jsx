@@ -19,9 +19,9 @@ function Header() {
         <NavLink to="/help">Help</NavLink>
       </nav>
 
-      <Link to="/for-pros" className="worker-btn">
-        Become a Worker
-      </Link>
+      <Link to="/login" className="worker-btn">
+  Login / Sign Up
+</Link>
     </header>
   );
 }
