@@ -1,11 +1,13 @@
 
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
+import { API_BASE_URL } from "../../config/api.js";
 import "./register.css";
 
 function Register() {
   const navigate = useNavigate();
+  const { state } = useLocation();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -31,7 +33,7 @@ function Register() {
 
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/auth/register",
+        `${API_BASE_URL}/auth/register`,
         formData
       );
 
@@ -48,7 +50,7 @@ function Register() {
 
       setMessage("Registration successful!");
 
-      navigate("/");
+      navigate(state?.from === "/post-job" ? "/post-job" : "/");
     } catch (error) {
       setMessage(
         error.response?.data?.message ||
@@ -104,7 +106,7 @@ function Register() {
             placeholder="Create a password"
             value={formData.password}
             onChange={handleChange}
-            minLength={6}
+            minLength={8}
             required
           />
 
