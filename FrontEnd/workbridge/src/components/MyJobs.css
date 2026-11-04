@@ -1,0 +1,172 @@
+.my-jobs-page {
+  min-height: 65vh;
+  padding: 3rem max(1.25rem, calc((100% - 1100px) / 2));
+  background: #f6f7fb;
+  color: #172033;
+}
+
+.my-jobs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.my-jobs-eyebrow,
+.my-job-service {
+  margin: 0 0 0.4rem;
+  color: #4f46e5;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.my-jobs-header h1 {
+  margin: 0;
+  font-size: clamp(2rem, 5vw, 3rem);
+}
+
+.my-jobs-header p:last-child {
+  margin: 0.5rem 0 0;
+  color: #667085;
+}
+
+.my-jobs-post-link,
+.my-jobs-empty a,
+.my-jobs-message a,
+.my-jobs-message button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.65rem 1rem;
+  border: 0;
+  border-radius: 0.65rem;
+  background: #4f46e5;
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.my-jobs-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.my-job-card,
+.my-jobs-empty,
+.my-jobs-message {
+  padding: 1.5rem;
+  border: 1px solid #e6e8ef;
+  border-radius: 1rem;
+  background: #fff;
+  box-shadow: 0 8px 24px rgb(23 32 51 / 5%);
+}
+
+.my-job-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.my-job-heading h2 {
+  margin: 0;
+}
+
+.my-job-status {
+  align-self: flex-start;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  background: #e8f4ec;
+  color: #18743a;
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.my-job-status.accepted {
+  background: #fff4d8;
+  color: #8a5a00;
+}
+
+.my-job-status.completed {
+  background: #e8edff;
+  color: #3730a3;
+}
+
+.my-job-description {
+  color: #566074;
+  line-height: 1.6;
+}
+
+.my-job-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 1rem;
+  margin: 1.25rem 0 0;
+}
+
+.my-job-details div {
+  min-width: 0;
+}
+
+.my-job-details dt {
+  color: #778096;
+  font-size: 0.8rem;
+}
+
+.my-job-details dd {
+  margin: 0.2rem 0 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.my-job-photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.my-job-photos img {
+  width: 90px;
+  height: 90px;
+  border-radius: 0.65rem;
+  object-fit: cover;
+}
+
+.my-jobs-empty,
+.my-jobs-message {
+  color: #566074;
+}
+
+.my-jobs-empty h2 {
+  margin-top: 0;
+  color: #172033;
+}
+
+.my-jobs-error p {
+  margin-top: 0;
+}
+
+@media (max-width: 600px) {
+  .my-jobs-page {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+  }
+
+  .my-jobs-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .my-job-card,
+  .my-jobs-empty,
+  .my-jobs-message {
+    padding: 1.1rem;
+  }
+}

@@ -2,15 +2,48 @@
 const express = require("express");
 const mongoose = require("mongoose");
 
-const Job = require("../models/Job");
+const JobRequest = require("../models/JobRequest");
 const User = require("../models/User");
 const authMiddleware = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-// 1. CUSTOMER: POST A NEW JOB
-// POST /api/jobs
+const SERVICES = [
+  "Electrical",
+  "Plumbing",
+  "AC Repair",
+  "Cleaning",
+  "Painting",
+  "Carpentry",
+  "Handyman",
+  "Shifting"
+];
 
+const URGENCY_OPTIONS = ["Urgent", "Within a week", "Flexible"];
+
+const isValidDate = (value) => {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+
+  return (
+    !Number.isNaN(parsed.getTime()) &&
+    parsed.toISOString().slice(0, 10) === value
+  );
+};
+
+const isValidPhotoUrl = (value) => {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:";
+  } catch {
+    return false;
+  }
+};
+
+// CUSTOMER: Create a new job
 router.post("/", authMiddleware, async (req, res) => {
   try {
     if (req.user.role !== "customer") {
@@ -25,90 +58,96 @@ router.post("/", authMiddleware, async (req, res) => {
       title,
       description,
       location,
-      date,
-      urgency,
-      budget,
+      date = "",
+      urgency = "Flexible",
+      budget = "",
       phone,
-      photos
-    } = req.body;
+      photos = []
+    } = req.body || {};
 
     if (
-      !service ||
-      !title ||
-      !description ||
-      !location ||
-      !date
+      !SERVICES.includes(service) ||
+      typeof title !== "string" ||
+      !title.trim() ||
+      title.trim().length > 120 ||
+      typeof description !== "string" ||
+      !description.trim() ||
+      description.trim().length > 500 ||
+      typeof location !== "string" ||
+      !location.trim() ||
+      location.trim().length > 120 ||
+      typeof phone !== "string" ||
+      !/^\d{10}$/.test(phone) ||
+      !URGENCY_OPTIONS.includes(urgency)
     ) {
       return res.status(400).json({
         success: false,
-        message: "Please provide all required job details"
+        message: "Please provide valid job details"
       });
     }
 
-    const jobDate = new Date(date);
-
-    if (Number.isNaN(jobDate.getTime())) {
+    if (date !== "" && date !== null && !isValidDate(date)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid job date"
+        message: "Invalid preferred date"
       });
     }
 
-    if (budget !== undefined && budget !== null) {
+    let normalizedBudget = null;
+
+    if (budget !== "" && budget !== null && budget !== undefined) {
       if (
-        typeof budget !== "number" ||
-        !Number.isFinite(budget) ||
-        budget < 0
+        (typeof budget !== "number" &&
+          (typeof budget !== "string" || !budget.trim())) ||
+        !Number.isFinite(Number(budget)) ||
+        Number(budget) < 0
       ) {
         return res.status(400).json({
           success: false,
-          message: "Budget must be a valid non-negative number"
+          message: "Invalid budget"
         });
       }
+
+      normalizedBudget = Number(budget);
     }
 
-    if (photos !== undefined) {
-      if (
-        !Array.isArray(photos) ||
-        !photos.every(photo => typeof photo === "string")
-      ) {
-        return res.status(400).json({
-          success: false,
-          message: "Photos must be an array of image URLs"
-        });
-      }
-    }
-
-    const customer = await User.findById(req.user.userId);
-
-    if (!customer || customer.role !== "customer") {
-      return res.status(404).json({
+    if (
+      !Array.isArray(photos) ||
+      photos.length > 5 ||
+      !photos.every(
+        (photo) =>
+          typeof photo === "string" && isValidPhotoUrl(photo)
+      )
+    ) {
+      return res.status(400).json({
         success: false,
-        message: "Customer not found"
+        message: "Please provide up to 5 valid photo URLs"
       });
     }
 
-    const job = await Job.create({
-      customer: customer._id,
+    const job = await JobRequest.create({
+      customer: req.user.userId,
       service,
       title: title.trim(),
       description: description.trim(),
       location: location.trim(),
-      date: jobDate,
-      urgency: urgency || "Flexible",
-      budget: budget ?? null,
-      phone: phone || "",
-      photos: photos || [],
+      date: date || null,
+      urgency,
+      budget: normalizedBudget,
+      phone,
+      photos,
       status: "Available",
       technician: null
     });
 
+    const populatedJob = await JobRequest.findById(job._id)
+      .populate("customer", "name email");
+
     return res.status(201).json({
       success: true,
       message: "Job posted successfully",
-      job
+      job: populatedJob
     });
-
   } catch (error) {
     if (error.name === "ValidationError") {
       return res.status(400).json({
@@ -117,19 +156,16 @@ router.post("/", authMiddleware, async (req, res) => {
       });
     }
 
-    console.error("Post job error:", error.message);
+    console.error("Create job error:", error.message);
 
     return res.status(500).json({
       success: false,
-      message: "Unable to post job"
+      message: "Unable to create job"
     });
   }
 });
 
-
-// 2. TECHNICIAN: GET AVAILABLE JOBS
-// GET /api/jobs/available
-
+// TECHNICIAN: Get available jobs matching skills
 router.get("/available", authMiddleware, async (req, res) => {
   try {
     if (req.user.role !== "technician") {
@@ -148,8 +184,7 @@ router.get("/available", authMiddleware, async (req, res) => {
       });
     }
 
-    if (!technician.serviceCategories ||
-        technician.serviceCategories.length === 0) {
+    if (!technician.serviceCategories || !technician.serviceCategories.length) {
       return res.json({
         success: true,
         count: 0,
@@ -157,7 +192,7 @@ router.get("/available", authMiddleware, async (req, res) => {
       });
     }
 
-    const jobs = await Job.find({
+    const jobs = await JobRequest.find({
       status: "Available",
       technician: null,
       service: { $in: technician.serviceCategories }
@@ -171,7 +206,6 @@ router.get("/available", authMiddleware, async (req, res) => {
       count: jobs.length,
       jobs
     });
-
   } catch (error) {
     console.error("Available jobs error:", error.message);
 
@@ -182,10 +216,39 @@ router.get("/available", authMiddleware, async (req, res) => {
   }
 });
 
+// CUSTOMER: Get their posted jobs
+router.get("/my", authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== "customer") {
+      return res.status(403).json({
+        success: false,
+        message: "Only customers can view their jobs"
+      });
+    }
 
-// 3. TECHNICIAN: GET ACCEPTED AND COMPLETED JOBS
-// GET /api/jobs/my-jobs
+    const jobs = await JobRequest.find({
+      customer: req.user.userId
+    })
+      .populate("customer", "name email")
+      .populate("technician", "name email")
+      .sort({ createdAt: -1 });
 
+    return res.json({
+      success: true,
+      count: jobs.length,
+      jobs
+    });
+  } catch (error) {
+    console.error("My jobs error:", error.message);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to fetch your jobs"
+    });
+  }
+});
+
+// TECHNICIAN: Get accepted and completed jobs
 router.get("/my-jobs", authMiddleware, async (req, res) => {
   try {
     if (req.user.role !== "technician") {
@@ -195,7 +258,7 @@ router.get("/my-jobs", authMiddleware, async (req, res) => {
       });
     }
 
-    const jobs = await Job.find({
+    const jobs = await JobRequest.find({
       technician: req.user.userId,
       status: { $in: ["Accepted", "Completed"] }
     })
@@ -207,9 +270,8 @@ router.get("/my-jobs", authMiddleware, async (req, res) => {
       count: jobs.length,
       jobs
     });
-
   } catch (error) {
-    console.error("My jobs error:", error.message);
+    console.error("Technician jobs error:", error.message);
 
     return res.status(500).json({
       success: false,
@@ -218,10 +280,7 @@ router.get("/my-jobs", authMiddleware, async (req, res) => {
   }
 });
 
-
-// 4. TECHNICIAN: ACCEPT A JOB
-// PATCH /api/jobs/:id/accept
-
+// TECHNICIAN: Accept an available job
 router.patch("/:id/accept", authMiddleware, async (req, res) => {
   try {
     if (req.user.role !== "technician") {
@@ -247,17 +306,14 @@ router.patch("/:id/accept", authMiddleware, async (req, res) => {
       });
     }
 
-    if (!technician.serviceCategories ||
-        technician.serviceCategories.length === 0) {
+    if (!technician.serviceCategories || !technician.serviceCategories.length) {
       return res.status(403).json({
         success: false,
         message: "Please select your service categories first"
       });
     }
 
-    // Only matching technicians can accept this job.
-    // Atomic update prevents two technicians accepting the same job.
-    const job = await Job.findOneAndUpdate(
+    const job = await JobRequest.findOneAndUpdate(
       {
         _id: req.params.id,
         status: "Available",
@@ -271,7 +327,7 @@ router.patch("/:id/accept", authMiddleware, async (req, res) => {
         }
       },
       {
-        new: true,
+        returnDocument: "after",
         runValidators: true
       }
     ).populate("customer", "name email");
@@ -288,7 +344,6 @@ router.patch("/:id/accept", authMiddleware, async (req, res) => {
       message: "Job accepted successfully",
       job
     });
-
   } catch (error) {
     console.error("Accept job error:", error.message);
 
@@ -299,10 +354,7 @@ router.patch("/:id/accept", authMiddleware, async (req, res) => {
   }
 });
 
-
-// 5. TECHNICIAN: COMPLETE A JOB
-// PATCH /api/jobs/:id/complete
-
+// TECHNICIAN: Mark an accepted job as completed
 router.patch("/:id/complete", authMiddleware, async (req, res) => {
   try {
     if (req.user.role !== "technician") {
@@ -319,7 +371,7 @@ router.patch("/:id/complete", authMiddleware, async (req, res) => {
       });
     }
 
-    const job = await Job.findOneAndUpdate(
+    const job = await JobRequest.findOneAndUpdate(
       {
         _id: req.params.id,
         technician: req.user.userId,
@@ -331,7 +383,7 @@ router.patch("/:id/complete", authMiddleware, async (req, res) => {
         }
       },
       {
-        new: true,
+        returnDocument: "after",
         runValidators: true
       }
     );
@@ -348,7 +400,6 @@ router.patch("/:id/complete", authMiddleware, async (req, res) => {
       message: "Job completed successfully",
       job
     });
-
   } catch (error) {
     console.error("Complete job error:", error.message);
 
@@ -359,10 +410,7 @@ router.patch("/:id/complete", authMiddleware, async (req, res) => {
   }
 });
 
-
-// 6. TECHNICIAN: GET SINGLE JOB DETAILS
-// GET /api/jobs/:id
-
+// TECHNICIAN: Get details of their assigned job
 router.get("/:id", authMiddleware, async (req, res) => {
   try {
     if (req.user.role !== "technician") {
@@ -379,12 +427,11 @@ router.get("/:id", authMiddleware, async (req, res) => {
       });
     }
 
-    const job = await Job.findOne({
+    const job = await JobRequest.findOne({
       _id: req.params.id,
       technician: req.user.userId,
       status: { $in: ["Accepted", "Completed"] }
-    })
-      .populate("customer", "name email");
+    }).populate("customer", "name email");
 
     if (!job) {
       return res.status(404).json({
@@ -397,7 +444,6 @@ router.get("/:id", authMiddleware, async (req, res) => {
       success: true,
       job
     });
-
   } catch (error) {
     console.error("Job details error:", error.message);
 
