@@ -35,22 +35,29 @@ function Login() {
         formData
       );
 
-      if (response.data.token) {
-        localStorage.setItem("workbridgeToken", response.data.token);
+      const token = response.data.token;
+      const user = response.data.user;
+
+      if (!token) {
+        throw new Error("Login response did not contain a token.");
       }
 
-      if (response.data.user) {
-        localStorage.setItem(
-          "workbridgeUser",
-          JSON.stringify(response.data.user)
-        );
+      // Remove old keys and save the fresh login data.
+      localStorage.removeItem("workBridgeToken");
+      localStorage.removeItem("workBridgeUser");
+
+      localStorage.setItem("workbridgeToken", token);
+
+      if (user) {
+        localStorage.setItem("workbridgeUser", JSON.stringify(user));
       }
 
       navigate(state?.from === "/post-job" ? "/post-job" : "/");
     } catch (error) {
       setMessage(
         error.response?.data?.message ||
-          "Login failed. Check your email and password."
+          error.message ||
+          "Login failed. Please try again."
       );
     } finally {
       setLoading(false);
@@ -60,9 +67,7 @@ function Login() {
   return (
     <div className="login-page">
       <div className="login-card">
-        <Link to="/" className="login-brand">
-          WorkBridge
-        </Link>
+        <Link to="/" className="login-brand">WorkBridge</Link>
 
         <h1>Welcome Back!</h1>
         <p className="login-subtitle">
@@ -77,7 +82,6 @@ function Login() {
             id="login-email"
             type="email"
             name="email"
-            placeholder="Enter your email"
             value={formData.email}
             onChange={handleChange}
             required
@@ -88,7 +92,6 @@ function Login() {
             id="login-password"
             type="password"
             name="password"
-            placeholder="Enter your password"
             value={formData.password}
             onChange={handleChange}
             required
@@ -103,9 +106,7 @@ function Login() {
           Don't have an account? <Link to="/register">Register</Link>
         </p>
 
-        <Link to="/" className="login-home-link">
-          Back to Home
-        </Link>
+        <Link to="/" className="login-home-link">Back to Home</Link>
       </div>
     </div>
   );

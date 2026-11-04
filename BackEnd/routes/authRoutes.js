@@ -6,6 +6,29 @@ const User = require("../models/User");
 
 const router = express.Router();
 
+// Generate JWT Token
+const generateToken = (user) => {
+  return jwt.sign(
+    {
+      userId: user._id.toString(),
+      role: user.role
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+};
+
+// Format user data
+const getUserData = (user) => {
+  return {
+    id: user._id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    serviceCategories: user.serviceCategories || []
+  };
+};
+
 // REGISTER API
 router.post("/register", async (req, res) => {
   try {
@@ -46,7 +69,7 @@ router.post("/register", async (req, res) => {
     if (!process.env.JWT_SECRET) {
       return res.status(500).json({
         success: false,
-        message: "Server configuration error"
+        message: "JWT secret is missing"
       });
     }
 
@@ -98,26 +121,13 @@ router.post("/register", async (req, res) => {
       serviceCategories: categories
     });
 
-    const token = jwt.sign(
-      {
-        userId: user._id.toString(),
-        role: user.role
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: "1d" }
-    );
+    const token = generateToken(user);
 
     return res.status(201).json({
       success: true,
       message: "Registration successful",
       token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        serviceCategories: user.serviceCategories
-      }
+      user: getUserData(user)
     });
 
   } catch (error) {
@@ -170,7 +180,7 @@ router.post("/login", async (req, res) => {
     if (!process.env.JWT_SECRET) {
       return res.status(500).json({
         success: false,
-        message: "Server configuration error"
+        message: "JWT secret is missing"
       });
     }
 
@@ -194,26 +204,13 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    const token = jwt.sign(
-      {
-        userId: user._id.toString(),
-        role: user.role
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: "1d" }
-    );
+    const token = generateToken(user);
 
     return res.status(200).json({
       success: true,
       message: "Login successful",
       token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        serviceCategories: user.serviceCategories
-      }
+      user: getUserData(user)
     });
 
   } catch (error) {
