@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import { API_BASE_URL } from "../config/api.js";
+import JobProgressTracker from "./JobProgressTracker.jsx";
 import "./MyJobs.css";
 
 function MyJobs() {
@@ -18,6 +19,7 @@ function MyJobs() {
       ? ""
       : "Sign in to see the jobs you have posted."
   );
+  const [refreshError, setRefreshError] = useState("");
 
   useEffect(() => {
     const token = localStorage.getItem("workbridgeToken");
@@ -50,8 +52,30 @@ function MyJobs() {
         if (active) setLoading(false);
       });
 
+    const refreshTimer = window.setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+
+      axios
+        .get(`${API_BASE_URL}/jobs/my`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        .then((response) => {
+          if (!active) return;
+          setJobs(response.data.jobs || []);
+          setRefreshError("");
+        })
+        .catch((requestError) => {
+          if (!active) return;
+          setRefreshError(
+            requestError.response?.data?.message ||
+              "Unable to refresh job progress."
+          );
+        });
+    }, 10000);
+
     return () => {
       active = false;
+      window.clearInterval(refreshTimer);
     };
   }, [retryCount]);
 
@@ -67,7 +91,7 @@ function MyJobs() {
         <div>
           <p className="my-jobs-eyebrow">CUSTOMER DASHBOARD</p>
           <h1>My Jobs</h1>
-          <p>Track your requests and see when a technician accepts one.</p>
+          <p>Follow each job stage. Progress refreshes automatically.</p>
         </div>
         <Link className="my-jobs-post-link" to="/post-job">
           Post a job
@@ -99,6 +123,11 @@ function MyJobs() {
 
       {!loading && !error && jobs.length > 0 && (
         <section className="my-jobs-list" aria-label="Your posted jobs">
+          {refreshError && (
+            <p className="my-jobs-refresh-error" role="status">
+              Live updates are temporarily unavailable: {refreshError}
+            </p>
+          )}
           {jobs.map((job) => (
             <article className="my-job-card" key={job._id}>
               <div className="my-job-heading">
@@ -115,6 +144,8 @@ function MyJobs() {
               </div>
 
               <p className="my-job-description">{job.description}</p>
+
+              <JobProgressTracker status={job.status} />
 
               <dl className="my-job-details">
                 <div>

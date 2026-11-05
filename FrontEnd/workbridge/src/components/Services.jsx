@@ -1,15 +1,7 @@
 
-import React from "react";
+import { Link } from "react-router-dom";
+import servicesData from "../data/serviceData";
 import "./Pages.css";
-
-const services = [
-  ["🔧", "Home Repairs", "Doors, shelves, fixtures and everyday repairs."],
-  ["⚡", "Electrical", "Switches, fans, lights and electrical troubleshooting."],
-  ["🚿", "Plumbing", "Leaking taps, clogged drains and bathroom fittings."],
-  ["🧹", "Cleaning", "Routine cleaning and deep-cleaning services."],
-  ["🎨", "Painting", "Refresh your walls and give your home a new look."],
-  ["🪛", "Installation", "Furniture assembly, shelves and fixture installation."],
-];
 
 export default function Services() {
   return (
@@ -31,9 +23,9 @@ export default function Services() {
           We will help you figure out the next step.
         </p>
 
-        <a className="wb-btn wb-btn-primary" href="/help">
+        <Link className="wb-btn wb-btn-primary" to="/help">
           Describe your problem ↗
-        </a>
+        </Link>
       </section>
 
       <section className="wb-section">
@@ -47,19 +39,19 @@ export default function Services() {
         </div>
 
         <div className="wb-card-grid">
-          {services.map(([icon, title, description]) => (
-            <article className="wb-service-card" key={title}>
+          {Object.entries(servicesData).map(([slug, service]) => (
+            <article className="wb-service-card" key={slug}>
               <div className="wb-service-top">
-                <div className="wb-service-icon">{icon}</div>
+                <div className="wb-service-icon">{service.icon}</div>
                 <span className="wb-tag">Service</span>
               </div>
 
-              <h3>{title}</h3>
-              <p>{description}</p>
+              <h3>{service.name}</h3>
+              <p>{service.description}</p>
 
-              <a href="/help">
+              <Link to={`/services/${slug}`}>
                 Find help <span>↗</span>
-              </a>
+              </Link>
             </article>
           ))}
         </div>
@@ -70,9 +62,9 @@ export default function Services() {
           <span className="wb-kicker">NEED SOMETHING DIFFERENT?</span>
           <h2>Explain the problem in your own words.</h2>
         </div>
-        <a className="wb-btn wb-btn-light" href="/help">
+        <Link className="wb-btn wb-btn-light" to="/help">
           Get guidance ↗
-        </a>
+        </Link>
       </section>
     </main>
   );

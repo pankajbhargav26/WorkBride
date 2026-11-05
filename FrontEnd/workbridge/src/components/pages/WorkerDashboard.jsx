@@ -1,6 +1,7 @@
 
-import React, { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import JobProgressTracker from "../JobProgressTracker.jsx";
 import "./WorkerDashboard.css";
 
 const API_URL = "http://localhost:5000/api/jobs";
@@ -11,11 +12,13 @@ function WorkerDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [acceptingId, setAcceptingId] = useState(null);
+  const [updatingId, setUpdatingId] = useState(null);
+  const [progressError, setProgressError] = useState("");
 
   const token = localStorage.getItem("workBridgeToken");
 
   // Load jobs from backend
-  const fetchJobs = async () => {
+  const fetchJobs = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
@@ -52,11 +55,15 @@ function WorkerDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
-    fetchJobs();
-  }, []);
+    const timer = window.setTimeout(() => {
+      fetchJobs();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [fetchJobs]);
 
   // Accept a job
   const handleAcceptJob = async (jobId) => {
@@ -85,9 +92,38 @@ function WorkerDashboard() {
     }
   };
 
-  const acceptedJobs = myJobs.filter(
-    (job) => job.status === "Accepted"
-  );
+  const handleAdvanceJob = async (job) => {
+    const stages = ["Accepted", "On the Way", "Work Started", "Completed"];
+    const nextStatus = stages[stages.indexOf(job.status) + 1];
+    if (!nextStatus) return;
+
+    try {
+      setUpdatingId(job._id);
+      setProgressError("");
+
+      const response = await fetch(`${API_URL}/${job._id}/progress`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: nextStatus }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Unable to update job progress");
+      }
+
+      await fetchJobs();
+    } catch (err) {
+      setProgressError(err.message || "Unable to update job progress");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const activeJobs = myJobs.filter((job) => job.status !== "Completed");
 
   const completedJobs = myJobs.filter(
     (job) => job.status === "Completed"
@@ -143,8 +179,8 @@ function WorkerDashboard() {
 
           <div className="overview-card accepted-card">
             <div className="overview-icon">🛠️</div>
-            <h3>{acceptedJobs.length}</h3>
-            <p>Accepted Jobs</p>
+            <h3>{activeJobs.length}</h3>
+            <p>Active Jobs</p>
           </div>
 
           <div className="overview-card completed-card">
@@ -295,6 +331,17 @@ function WorkerDashboard() {
 
               <h3>{job.title}</h3>
               <p className="job-description">{job.description}</p>
+
+              <JobProgressTracker
+                status={job.status}
+                onAdvance={() => handleAdvanceJob(job)}
+                updating={updatingId === job._id}
+              />
+              {progressError && updatingId === null && (
+                <p className="job-progress-error" role="alert">
+                  {progressError}
+                </p>
+              )}
 
               <Link
                 to={`/worker-dashboard/jobs/${job._id}`}

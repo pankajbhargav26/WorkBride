@@ -20,6 +20,7 @@ const SERVICES = [
 ];
 
 const URGENCY_OPTIONS = ["Urgent", "Within a week", "Flexible"];
+const JOB_PROGRESS = ["Accepted", "On the Way", "Work Started", "Completed"];
 
 const isValidDate = (value) => {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
@@ -260,7 +261,7 @@ router.get("/my-jobs", authMiddleware, async (req, res) => {
 
     const jobs = await JobRequest.find({
       technician: req.user.userId,
-      status: { $in: ["Accepted", "Completed"] }
+      status: { $in: JOB_PROGRESS }
     })
       .populate("customer", "name email")
       .sort({ updatedAt: -1 });
@@ -354,7 +355,71 @@ router.patch("/:id/accept", authMiddleware, async (req, res) => {
   }
 });
 
-// TECHNICIAN: Mark an accepted job as completed
+// TECHNICIAN: Advance an assigned job by exactly one progress stage
+router.patch("/:id/progress", authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== "technician") {
+      return res.status(403).json({
+        success: false,
+        message: "Only technicians can update job progress"
+      });
+    }
+
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid job ID"
+      });
+    }
+
+    const nextStatus = req.body?.status;
+    const nextIndex = JOB_PROGRESS.indexOf(nextStatus);
+
+    if (nextIndex < 1) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide the next valid job progress stage"
+      });
+    }
+
+    const job = await JobRequest.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        technician: req.user.userId,
+        status: JOB_PROGRESS[nextIndex - 1]
+      },
+      {
+        $set: { status: nextStatus }
+      },
+      {
+        returnDocument: "after",
+        runValidators: true
+      }
+    );
+
+    if (!job) {
+      return res.status(409).json({
+        success: false,
+        message: "Job progress changed or the next stage is not available"
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "Job progress updated successfully",
+      job
+    });
+  } catch (error) {
+    console.error("Update job progress error:", error.message);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to update job progress"
+    });
+  }
+});
+
+// TECHNICIAN: Mark a work-started job as completed
 router.patch("/:id/complete", authMiddleware, async (req, res) => {
   try {
     if (req.user.role !== "technician") {
@@ -375,7 +440,7 @@ router.patch("/:id/complete", authMiddleware, async (req, res) => {
       {
         _id: req.params.id,
         technician: req.user.userId,
-        status: "Accepted"
+        status: "Work Started"
       },
       {
         $set: {
@@ -391,7 +456,7 @@ router.patch("/:id/complete", authMiddleware, async (req, res) => {
     if (!job) {
       return res.status(404).json({
         success: false,
-        message: "Accepted job not found or not assigned to you"
+        message: "Work-started job not found or not assigned to you"
       });
     }
 
@@ -430,7 +495,7 @@ router.get("/:id", authMiddleware, async (req, res) => {
     const job = await JobRequest.findOne({
       _id: req.params.id,
       technician: req.user.userId,
-      status: { $in: ["Accepted", "Completed"] }
+      status: { $in: JOB_PROGRESS }
     }).populate("customer", "name email");
 
     if (!job) {
