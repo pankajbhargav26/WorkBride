@@ -179,7 +179,7 @@
 /* Accept Job */
 
 .accept-box h2 {
-  font-size: 27px;
+  font-size: 24px;
   color: #172d55;
   margin: 7px 0;
 }
@@ -212,9 +212,98 @@
   cursor: not-allowed;
 }
 
+/* Workflow Forms */
+
+.workflow-box form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.workflow-box label {
+  color: #475569;
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 5px;
+}
+
+.workflow-box input,
+.workflow-box textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #dce3ed;
+  border-radius: 8px;
+  padding: 12px;
+  font-family: inherit;
+  font-size: 14px;
+  color: #202b3c;
+  outline: none;
+}
+
+.workflow-box textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.workflow-box input:focus,
+.workflow-box textarea:focus {
+  border-color: #2563eb;
+}
+
+.workflow-box .accept-job-button {
+  margin-top: 5px;
+}
+
+.workflow-message {
+  border-left: 4px solid #2563eb;
+}
+
+.workflow-message h2 {
+  margin-bottom: 10px;
+}
+
+.workflow-message p {
+  margin-bottom: 0;
+}
+
+.estimate-amount {
+  font-size: 28px;
+  font-weight: 700;
+  color: #172d55;
+  margin-bottom: 12px;
+}
+
+.completion-photo {
+  width: 100%;
+  max-width: 350px;
+  max-height: 250px;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.job-error {
+  background: #fff1f2;
+  color: #be123c;
+  border: 1px solid #fecdd3;
+  border-radius: 8px;
+  padding: 12px 15px;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.job-message {
+  text-align: center;
+  padding: 100px 20px;
+  color: #64748b;
+}
+
 .job-not-found {
   text-align: center;
   padding: 100px 20px;
+}
+
+.job-not-found p {
+  color: #64748b;
 }
 
 .job-not-found a {
@@ -252,3 +341,47 @@
     padding: 19px;
   }
 }
+
+
+/* ===== Job workflow additions ===== */
+.charges-table { display: grid; gap: 0.5rem; margin-bottom: 0.75rem; }
+
+.charges-table > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  color: #475467;
+}
+
+.charges-table strong { color: #172033; }
+.charge-struck { text-decoration: line-through; color: #98a2b3 !important; }
+
+.charges-total {
+  margin-top: 0.25rem;
+  padding-top: 0.6rem;
+  border-top: 1px dashed #d0d5dd;
+  font-weight: 700;
+}
+
+.charges-total strong { font-size: 1.2rem; color: #4f46e5; }
+.charges-hint { font-size: 0.82rem; color: #98a2b3; }
+
+.not-proceed-box { border-left: 4px solid #ef4444; }
+
+.secondary-job-button {
+  margin-top: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  border: 1px solid #fca5a5;
+  border-radius: 0.65rem;
+  background: #fff;
+  color: #b91c1c;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.secondary-job-button:hover:not(:disabled) { background: #fef2f2; }
+.secondary-job-button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.rating-stars { color: #f59e0b; font-size: 1.4rem; letter-spacing: 2px; }
+.rating-stars span { color: #d0d5dd; }

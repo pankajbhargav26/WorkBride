@@ -157,7 +157,7 @@ function PostJob() {
     e.preventDefault();
     setFormError("");
 
-    const token = localStorage.getItem("workbridgeToken");
+    const token = (localStorage.getItem("workBridgeToken") || localStorage.getItem("workbridgeToken"));
     if (!token) {
       navigate("/login", { state: { from: "/post-job" } });
       return;

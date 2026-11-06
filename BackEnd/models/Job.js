@@ -1,4 +1,3 @@
-
 const mongoose = require("mongoose");
 
 const jobSchema = new mongoose.Schema(
@@ -44,7 +43,7 @@ const jobSchema = new mongoose.Schema(
 
     date: {
       type: Date,
-      required: true
+      default: null
     },
 
     urgency: {
@@ -71,13 +70,108 @@ const jobSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["Available", "Accepted", "On the Way", "Work Started", "Completed"],
+      enum: [
+        "Available",
+        "Accepted",
+        "Visited",
+        "Estimate Given",
+        "In Progress",
+        "Completed",
+        "Repair Not Proceeded",
+        "Inspection Only" // legacy value, kept so old jobs still load
+      ],
       default: "Available"
     },
 
     technician: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+      default: null
+    },
+
+    visitDetails: {
+      type: String,
+      trim: true,
+      default: ""
+    },
+
+    visitedAt: {
+      type: Date,
+      default: null
+    },
+
+    // Inspection / visiting fee. Separate from the repair estimate.
+    visitingCharge: {
+      type: Number,
+      default: null,
+      min: 0
+    },
+
+    estimatedCharges: {
+      type: Number,
+      default: null,
+      min: 0
+    },
+
+    estimateNotes: {
+      type: String,
+      trim: true,
+      default: ""
+    },
+
+    estimateStatus: {
+      type: String,
+      enum: ["Not Sent", "Pending", "Approved", "Rejected"],
+      default: "Not Sent"
+    },
+
+    estimateUpdatedAt: {
+      type: Date,
+      default: null
+    },
+
+    completionType: {
+      type: String,
+      enum: ["Work Completed", "Customer Did Not Proceed", "Only Inspection"],
+      default: null
+    },
+
+    completionPhoto: {
+      type: String,
+      default: null
+    },
+
+    inspectionDescription: {
+      type: String,
+      trim: true,
+      default: ""
+    },
+
+    completedAt: {
+      type: Date,
+      default: null
+    },
+
+    inspectionAt: {
+      type: Date,
+      default: null
+    },
+
+    rating: {
+      type: Number,
+      min: 1,
+      max: 5,
+      default: null
+    },
+
+    feedback: {
+      type: String,
+      trim: true,
+      default: ""
+    },
+
+    reviewedAt: {
+      type: Date,
       default: null
     }
   },

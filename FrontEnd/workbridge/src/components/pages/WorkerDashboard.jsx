@@ -1,7 +1,6 @@
-
-import { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import JobProgressTracker from "../JobProgressTracker.jsx";
+import { isNotProceeded, statusLabel } from "../../utils/jobWorkflow";
 import "./WorkerDashboard.css";
 
 const API_URL = "http://localhost:5000/api/jobs";
@@ -12,13 +11,11 @@ function WorkerDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [acceptingId, setAcceptingId] = useState(null);
-  const [updatingId, setUpdatingId] = useState(null);
-  const [progressError, setProgressError] = useState("");
 
   const token = localStorage.getItem("workBridgeToken");
 
-  // Load jobs from backend
-  const fetchJobs = useCallback(async () => {
+  // Load available jobs and technician's jobs
+  const fetchJobs = async () => {
     try {
       setLoading(true);
       setError("");
@@ -41,11 +38,15 @@ function WorkerDashboard() {
       const myJobsData = await myJobsResponse.json();
 
       if (!availableResponse.ok) {
-        throw new Error(availableData.message || "Unable to load available jobs");
+        throw new Error(
+          availableData.message || "Unable to load available jobs"
+        );
       }
 
       if (!myJobsResponse.ok) {
-        throw new Error(myJobsData.message || "Unable to load your jobs");
+        throw new Error(
+          myJobsData.message || "Unable to load your jobs"
+        );
       }
 
       setAvailableJobs(availableData.jobs || []);
@@ -55,15 +56,11 @@ function WorkerDashboard() {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  };
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      fetchJobs();
-    }, 0);
-
-    return () => window.clearTimeout(timer);
-  }, [fetchJobs]);
+    fetchJobs();
+  }, []);
 
   // Accept a job
   const handleAcceptJob = async (jobId) => {
@@ -92,41 +89,16 @@ function WorkerDashboard() {
     }
   };
 
-  const handleAdvanceJob = async (job) => {
-    const stages = ["Accepted", "On the Way", "Work Started", "Completed"];
-    const nextStatus = stages[stages.indexOf(job.status) + 1];
-    if (!nextStatus) return;
+  // Jobs currently being handled
+  const activeJobs = myJobs.filter((job) =>
+    ["Accepted", "Visited", "Estimate Given", "In Progress"].includes(
+      job.status
+    )
+  );
 
-    try {
-      setUpdatingId(job._id);
-      setProgressError("");
-
-      const response = await fetch(`${API_URL}/${job._id}/progress`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ status: nextStatus }),
-      });
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Unable to update job progress");
-      }
-
-      await fetchJobs();
-    } catch (err) {
-      setProgressError(err.message || "Unable to update job progress");
-    } finally {
-      setUpdatingId(null);
-    }
-  };
-
-  const activeJobs = myJobs.filter((job) => job.status !== "Completed");
-
-  const completedJobs = myJobs.filter(
-    (job) => job.status === "Completed"
+  // Jobs whose work or inspection is finished
+  const finishedJobs = myJobs.filter((job) =>
+    job.status === "Completed" || isNotProceeded(job.status)
   );
 
   const getIcon = (service) => {
@@ -185,8 +157,8 @@ function WorkerDashboard() {
 
           <div className="overview-card completed-card">
             <div className="overview-icon">✅</div>
-            <h3>{completedJobs.length}</h3>
-            <p>Completed Jobs</p>
+            <h3>{finishedJobs.length}</h3>
+            <p>Finished Jobs</p>
           </div>
 
         </div>
@@ -248,7 +220,7 @@ function WorkerDashboard() {
                     </span>
 
                     <span>
-                      📍 {job.location || "Location shared after acceptance"}
+                      📍 {job.location || "Location not available"}
                     </span>
 
                     <span>
@@ -262,26 +234,20 @@ function WorkerDashboard() {
 
                   <div className="job-card-bottom">
 
-                    <div className="job-budget">
-                      <small>Customer Budget</small>
-                      <strong>
-                        {job.budget != null
-                          ? `₹${job.budget}`
-                          : "Not specified"}
-                      </strong>
+                    <div>
+                      <small>Charges</small>
+                      <strong>As per work</strong>
                     </div>
 
-                    <div>
-                      <button
-                        className="view-job-btn"
-                        onClick={() => handleAcceptJob(job._id)}
-                        disabled={acceptingId === job._id}
-                      >
-                        {acceptingId === job._id
-                          ? "Accepting..."
-                          : "Accept Job"}
-                      </button>
-                    </div>
+                    <button
+                      className="view-job-btn"
+                      onClick={() => handleAcceptJob(job._id)}
+                      disabled={acceptingId === job._id}
+                    >
+                      {acceptingId === job._id
+                        ? "Accepting..."
+                        : "Accept Job"}
+                    </button>
 
                   </div>
 
@@ -300,24 +266,28 @@ function WorkerDashboard() {
 
       </section>
 
-      {/* My Accepted and Completed Jobs */}
+      {/* My Jobs */}
       <section className="available-jobs-section">
+
         <div className="jobs-heading">
           <div>
             <h2>My Jobs</h2>
-            <p>Your accepted and completed jobs.</p>
+            <p>Track your accepted, ongoing and finished jobs.</p>
           </div>
         </div>
 
-        {!loading && myJobs.length === 0 && (
+        {!loading && !error && myJobs.length === 0 && (
           <div className="no-jobs">
             <p>You have not accepted any jobs yet.</p>
           </div>
         )}
 
         <div className="worker-jobs-list">
+
           {myJobs.map((job) => (
+
             <div className="worker-job-card" key={job._id}>
+
               <div className="job-card-top">
                 <div className="job-service">
                   <span className="job-service-icon">
@@ -326,20 +296,37 @@ function WorkerDashboard() {
                   <span>{job.service}</span>
                 </div>
 
-                <span className="job-status">{job.status}</span>
+                <span className="job-status">
+                  {statusLabel(job.status)}
+                </span>
               </div>
 
               <h3>{job.title}</h3>
-              <p className="job-description">{job.description}</p>
 
-              <JobProgressTracker
-                status={job.status}
-                onAdvance={() => handleAdvanceJob(job)}
-                updating={updatingId === job._id}
-              />
-              {progressError && updatingId === null && (
-                <p className="job-progress-error" role="alert">
-                  {progressError}
+              <p className="job-description">
+                {job.description}
+              </p>
+
+              <div className="job-information">
+                <span>
+                  📍 {job.location}
+                </span>
+
+                <span>
+                  📅 {formatDate(job.date)}
+                </span>
+              </div>
+
+              {isNotProceeded(job.status) && (
+                <p>
+                  <strong>Repair not proceeded:</strong>{" "}
+                  {job.inspectionDescription || "Customer did not proceed"}
+                </p>
+              )}
+
+              {job.status === "Completed" && (
+                <p>
+                  <strong>Work:</strong> Completed
                 </p>
               )}
 
@@ -349,9 +336,13 @@ function WorkerDashboard() {
               >
                 View Job Details →
               </Link>
+
             </div>
+
           ))}
+
         </div>
+
       </section>
 
     </div>

@@ -1,12 +1,69 @@
-
 const express = require("express");
 const mongoose = require("mongoose");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
+const { randomUUID } = require("crypto");
 
-const JobRequest = require("../models/JobRequest");
+const JobRequest = require("../models/Job");
 const User = require("../models/User");
 const authMiddleware = require("../middleware/authMiddleware");
 
 const router = express.Router();
+
+// -------------------- FILE UPLOAD SETUP --------------------
+
+const uploadFolder = path.join(__dirname, "../uploads");
+
+if (!fs.existsSync(uploadFolder)) {
+  fs.mkdirSync(uploadFolder, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadFolder);
+  },
+
+  filename: (req, file, cb) => {
+    const extension = path.extname(file.originalname).toLowerCase();
+    cb(null, `${randomUUID()}${extension}`);
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+
+    if (!allowedTypes.includes(file.mimetype)) {
+      return cb(new Error("Only JPG, PNG and WEBP images are allowed"));
+    }
+
+    cb(null, true);
+  }
+});
+
+// Handle upload errors
+const uploadCompletionPhoto = (req, res, next) => {
+  upload.single("completionPhoto")(req, res, (error) => {
+    if (error) {
+      return res.status(400).json({
+        success: false,
+        message:
+          error.code === "LIMIT_FILE_SIZE"
+            ? "Image size must be less than 5 MB"
+            : error.message
+      });
+    }
+
+    next();
+  });
+};
+
+// -------------------- CONSTANTS --------------------
 
 const SERVICES = [
   "Electrical",
@@ -20,7 +77,20 @@ const SERVICES = [
 ];
 
 const URGENCY_OPTIONS = ["Urgent", "Within a week", "Flexible"];
-const JOB_PROGRESS = ["Accepted", "On the Way", "Work Started", "Completed"];
+
+// "Inspection Only" is the old name of "Repair Not Proceeded"
+const NOT_PROCEEDED_STATUSES = ["Repair Not Proceeded", "Inspection Only"];
+
+const ASSIGNED_STATUSES = [
+  "Accepted",
+  "Visited",
+  "Estimate Given",
+  "In Progress",
+  "Completed",
+  ...NOT_PROCEEDED_STATUSES
+];
+
+// -------------------- HELPER FUNCTIONS --------------------
 
 const isValidDate = (value) => {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
@@ -44,7 +114,8 @@ const isValidPhotoUrl = (value) => {
   }
 };
 
-// CUSTOMER: Create a new job
+// -------------------- CUSTOMER: CREATE JOB --------------------
+
 router.post("/", authMiddleware, async (req, res) => {
   try {
     if (req.user.role !== "customer") {
@@ -116,8 +187,7 @@ router.post("/", authMiddleware, async (req, res) => {
       !Array.isArray(photos) ||
       photos.length > 5 ||
       !photos.every(
-        (photo) =>
-          typeof photo === "string" && isValidPhotoUrl(photo)
+        (photo) => typeof photo === "string" && isValidPhotoUrl(photo)
       )
     ) {
       return res.status(400).json({
@@ -166,7 +236,8 @@ router.post("/", authMiddleware, async (req, res) => {
   }
 });
 
-// TECHNICIAN: Get available jobs matching skills
+// -------------------- TECHNICIAN: AVAILABLE JOBS --------------------
+
 router.get("/available", authMiddleware, async (req, res) => {
   try {
     if (req.user.role !== "technician") {
@@ -217,7 +288,8 @@ router.get("/available", authMiddleware, async (req, res) => {
   }
 });
 
-// CUSTOMER: Get their posted jobs
+// -------------------- CUSTOMER: MY JOBS --------------------
+
 router.get("/my", authMiddleware, async (req, res) => {
   try {
     if (req.user.role !== "customer") {
@@ -249,7 +321,8 @@ router.get("/my", authMiddleware, async (req, res) => {
   }
 });
 
-// TECHNICIAN: Get accepted and completed jobs
+// -------------------- TECHNICIAN: MY ASSIGNED JOBS --------------------
+
 router.get("/my-jobs", authMiddleware, async (req, res) => {
   try {
     if (req.user.role !== "technician") {
@@ -261,7 +334,7 @@ router.get("/my-jobs", authMiddleware, async (req, res) => {
 
     const jobs = await JobRequest.find({
       technician: req.user.userId,
-      status: { $in: JOB_PROGRESS }
+      status: { $in: ASSIGNED_STATUSES }
     })
       .populate("customer", "name email")
       .sort({ updatedAt: -1 });
@@ -281,7 +354,8 @@ router.get("/my-jobs", authMiddleware, async (req, res) => {
   }
 });
 
-// TECHNICIAN: Accept an available job
+// -------------------- TECHNICIAN: ACCEPT JOB --------------------
+
 router.patch("/:id/accept", authMiddleware, async (req, res) => {
   try {
     if (req.user.role !== "technician") {
@@ -355,13 +429,14 @@ router.patch("/:id/accept", authMiddleware, async (req, res) => {
   }
 });
 
-// TECHNICIAN: Advance an assigned job by exactly one progress stage
-router.patch("/:id/progress", authMiddleware, async (req, res) => {
+// -------------------- TECHNICIAN: ADD VISIT DETAILS --------------------
+
+router.patch("/:id/visit", authMiddleware, async (req, res) => {
   try {
     if (req.user.role !== "technician") {
       return res.status(403).json({
         success: false,
-        message: "Only technicians can update job progress"
+        message: "Only technicians can add visit details"
       });
     }
 
@@ -372,13 +447,27 @@ router.patch("/:id/progress", authMiddleware, async (req, res) => {
       });
     }
 
-    const nextStatus = req.body?.status;
-    const nextIndex = JOB_PROGRESS.indexOf(nextStatus);
+    const { visitDetails, visitingCharge } = req.body || {};
 
-    if (nextIndex < 1) {
+    if (
+      typeof visitDetails !== "string" ||
+      !visitDetails.trim() ||
+      visitDetails.trim().length > 1000
+    ) {
       return res.status(400).json({
         success: false,
-        message: "Please provide the next valid job progress stage"
+        message: "Valid visit details are required"
+      });
+    }
+
+    if (
+      typeof visitingCharge !== "number" ||
+      !Number.isFinite(visitingCharge) ||
+      visitingCharge < 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Please enter a valid visiting charge"
       });
     }
 
@@ -386,65 +475,14 @@ router.patch("/:id/progress", authMiddleware, async (req, res) => {
       {
         _id: req.params.id,
         technician: req.user.userId,
-        status: JOB_PROGRESS[nextIndex - 1]
-      },
-      {
-        $set: { status: nextStatus }
-      },
-      {
-        returnDocument: "after",
-        runValidators: true
-      }
-    );
-
-    if (!job) {
-      return res.status(409).json({
-        success: false,
-        message: "Job progress changed or the next stage is not available"
-      });
-    }
-
-    return res.json({
-      success: true,
-      message: "Job progress updated successfully",
-      job
-    });
-  } catch (error) {
-    console.error("Update job progress error:", error.message);
-
-    return res.status(500).json({
-      success: false,
-      message: "Unable to update job progress"
-    });
-  }
-});
-
-// TECHNICIAN: Mark a work-started job as completed
-router.patch("/:id/complete", authMiddleware, async (req, res) => {
-  try {
-    if (req.user.role !== "technician") {
-      return res.status(403).json({
-        success: false,
-        message: "Only technicians can complete jobs"
-      });
-    }
-
-    if (!mongoose.isValidObjectId(req.params.id)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid job ID"
-      });
-    }
-
-    const job = await JobRequest.findOneAndUpdate(
-      {
-        _id: req.params.id,
-        technician: req.user.userId,
-        status: "Work Started"
+        status: "Accepted"
       },
       {
         $set: {
-          status: "Completed"
+          visitDetails: visitDetails.trim(),
+          visitingCharge,
+          visitedAt: new Date(),
+          status: "Visited"
         }
       },
       {
@@ -456,26 +494,484 @@ router.patch("/:id/complete", authMiddleware, async (req, res) => {
     if (!job) {
       return res.status(404).json({
         success: false,
-        message: "Work-started job not found or not assigned to you"
+        message: "Accepted job not found or not assigned to you"
       });
     }
 
     return res.json({
       success: true,
-      message: "Job completed successfully",
+      message: "Visit details saved successfully",
       job
     });
   } catch (error) {
-    console.error("Complete job error:", error.message);
+    console.error("Visit details error:", error.message);
 
     return res.status(500).json({
       success: false,
-      message: "Unable to complete job"
+      message: "Unable to save visit details"
     });
   }
 });
 
-// TECHNICIAN: Get details of their assigned job
+// -------------------- TECHNICIAN: SUBMIT ESTIMATE --------------------
+
+router.patch("/:id/estimate", authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== "technician") {
+      return res.status(403).json({
+        success: false,
+        message: "Only technicians can submit estimates"
+      });
+    }
+
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid job ID"
+      });
+    }
+
+    const { estimatedCharges, estimateNotes = "" } = req.body;
+
+    if (
+      typeof estimatedCharges !== "number" ||
+      !Number.isFinite(estimatedCharges) ||
+      estimatedCharges < 0 ||
+      typeof estimateNotes !== "string" ||
+      estimateNotes.length > 500
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide valid estimate details"
+      });
+    }
+
+    const job = await JobRequest.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        technician: req.user.userId,
+        status: "Visited",
+        $or: [
+          { estimateStatus: { $in: ["Not Sent", "Rejected"] } },
+          { estimateStatus: { $exists: false } }
+        ]
+      },
+      {
+        $set: {
+          estimatedCharges,
+          estimateNotes: estimateNotes.trim(),
+          estimateStatus: "Pending",
+          estimateUpdatedAt: new Date(),
+          status: "Estimate Given"
+        }
+      },
+      {
+        returnDocument: "after",
+        runValidators: true
+      }
+    );
+
+    if (!job) {
+      return res.status(409).json({
+        success: false,
+        message: "Job is not ready for a new estimate"
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "Estimate submitted successfully",
+      job
+    });
+  } catch (error) {
+    console.error("Estimate error:", error.message);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to submit estimate"
+    });
+  }
+});
+
+// -------------------- CUSTOMER: APPROVE ESTIMATE --------------------
+
+router.patch("/:id/approve-estimate", authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== "customer") {
+      return res.status(403).json({
+        success: false,
+        message: "Only customers can approve estimates"
+      });
+    }
+
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid job ID"
+      });
+    }
+
+    const job = await JobRequest.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        customer: req.user.userId,
+        status: "Estimate Given",
+        estimateStatus: "Pending"
+      },
+      {
+        $set: {
+          status: "In Progress",
+          estimateStatus: "Approved"
+        }
+      },
+      {
+        returnDocument: "after",
+        runValidators: true
+      }
+    );
+
+    if (!job) {
+      return res.status(404).json({
+        success: false,
+        message: "Pending estimate not found"
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "Estimate approved successfully",
+      job
+    });
+  } catch (error) {
+    console.error("Approve estimate error:", error.message);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to approve estimate"
+    });
+  }
+});
+
+// -------------------- CUSTOMER: REJECT ESTIMATE --------------------
+
+router.patch("/:id/reject-estimate", authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== "customer") {
+      return res.status(403).json({
+        success: false,
+        message: "Only customers can reject estimates"
+      });
+    }
+
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid job ID"
+      });
+    }
+
+    const job = await JobRequest.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        customer: req.user.userId,
+        status: "Estimate Given",
+        estimateStatus: "Pending"
+      },
+      {
+        $set: {
+          status: "Repair Not Proceeded",
+          estimateStatus: "Rejected",
+          estimateUpdatedAt: new Date(),
+          completionType: "Customer Did Not Proceed",
+          inspectionDescription: "Customer did not approve the repair estimate.",
+          inspectionAt: new Date(),
+          completionPhoto: null,
+          completedAt: null
+        }
+      },
+      {
+        returnDocument: "after",
+        runValidators: true
+      }
+    );
+
+    if (!job) {
+      return res.status(404).json({
+        success: false,
+        message: "Pending estimate not found"
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "Repair not proceeded. Only the visiting charge applies.",
+      job
+    });
+  } catch (error) {
+    console.error("Reject estimate error:", error.message);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to reject estimate"
+    });
+  }
+});
+
+// -------------------- TECHNICIAN: WORK COMPLETED WITH PHOTO --------------------
+
+router.patch(
+  "/:id/complete",
+  authMiddleware,
+  uploadCompletionPhoto,
+  async (req, res) => {
+    let uploadedFilePath = req.file?.path;
+
+    try {
+      if (req.user.role !== "technician") {
+        if (uploadedFilePath && fs.existsSync(uploadedFilePath)) {
+          fs.unlinkSync(uploadedFilePath);
+        }
+
+        return res.status(403).json({
+          success: false,
+          message: "Only technicians can complete jobs"
+        });
+      }
+
+      if (!mongoose.isValidObjectId(req.params.id)) {
+        if (uploadedFilePath && fs.existsSync(uploadedFilePath)) {
+          fs.unlinkSync(uploadedFilePath);
+        }
+
+        return res.status(400).json({
+          success: false,
+          message: "Invalid job ID"
+        });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: "Completion photo is required"
+        });
+      }
+
+      const photoUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+
+      const job = await JobRequest.findOneAndUpdate(
+        {
+          _id: req.params.id,
+          technician: req.user.userId,
+          status: "In Progress"
+        },
+        {
+          $set: {
+            status: "Completed",
+            completionType: "Work Completed",
+            completionPhoto: photoUrl,
+            inspectionDescription: "",
+            completedAt: new Date(),
+            inspectionAt: null
+          }
+        },
+        {
+          returnDocument: "after",
+          runValidators: true
+        }
+      );
+
+      if (!job) {
+        if (uploadedFilePath && fs.existsSync(uploadedFilePath)) {
+          fs.unlinkSync(uploadedFilePath);
+        }
+
+        return res.status(404).json({
+          success: false,
+          message: "In-progress job not found or not assigned to you"
+        });
+      }
+
+      return res.json({
+        success: true,
+        message: "Work completed and photo uploaded successfully",
+        job
+      });
+    } catch (error) {
+      if (uploadedFilePath && fs.existsSync(uploadedFilePath)) {
+        fs.unlinkSync(uploadedFilePath);
+      }
+
+      console.error("Complete job error:", error.message);
+
+      return res.status(500).json({
+        success: false,
+        message: "Unable to complete job"
+      });
+    }
+  }
+);
+
+// -------------------- TECHNICIAN: CUSTOMER DID NOT PROCEED --------------------
+// Repair is not done, but the visiting charge still applies.
+// "/inspection-only" is kept as an alias for the old frontend.
+
+router.patch(
+  ["/:id/did-not-proceed", "/:id/inspection-only"],
+  authMiddleware,
+  async (req, res) => {
+    try {
+      if (req.user.role !== "technician") {
+        return res.status(403).json({
+          success: false,
+          message: "Only technicians can mark a job as repair not proceeded"
+        });
+      }
+
+      if (!mongoose.isValidObjectId(req.params.id)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid job ID"
+        });
+      }
+
+      const { inspectionDescription } = req.body || {};
+
+      if (
+        typeof inspectionDescription !== "string" ||
+        !inspectionDescription.trim() ||
+        inspectionDescription.trim().length > 1000
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Please enter the reason / inspection details"
+        });
+      }
+
+      // Only before the customer approves the repair
+      const job = await JobRequest.findOneAndUpdate(
+        {
+          _id: req.params.id,
+          technician: req.user.userId,
+          status: { $in: ["Visited", "Estimate Given"] }
+        },
+        {
+          $set: {
+            status: "Repair Not Proceeded",
+            completionType: "Customer Did Not Proceed",
+            inspectionDescription: inspectionDescription.trim(),
+            inspectionAt: new Date(),
+            estimateStatus: "Rejected",
+            estimateUpdatedAt: new Date(),
+            completionPhoto: null,
+            completedAt: null
+          }
+        },
+        {
+          returnDocument: "after",
+          runValidators: true
+        }
+      );
+
+      if (!job) {
+        return res.status(409).json({
+          success: false,
+          message: "Job is not available for this action"
+        });
+      }
+
+      return res.json({
+        success: true,
+        message: "Marked as Repair Not Proceeded. Visiting charge applies.",
+        job
+      });
+    } catch (error) {
+      console.error("Did-not-proceed error:", error.message);
+
+      return res.status(500).json({
+        success: false,
+        message: "Unable to update job"
+      });
+    }
+  }
+);
+
+// -------------------- CUSTOMER: RATING AND FEEDBACK --------------------
+
+router.patch("/:id/feedback", authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== "customer") {
+      return res.status(403).json({
+        success: false,
+        message: "Only customers can submit feedback"
+      });
+    }
+
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid job ID"
+      });
+    }
+
+    const { rating, feedback = "" } = req.body || {};
+
+    if (
+      !Number.isInteger(rating) ||
+      rating < 1 ||
+      rating > 5 ||
+      typeof feedback !== "string" ||
+      feedback.length > 500
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Rating must be 1-5 and feedback up to 500 characters"
+      });
+    }
+
+    const job = await JobRequest.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        customer: req.user.userId,
+        status: { $in: ["Completed", ...NOT_PROCEEDED_STATUSES] },
+        rating: null
+      },
+      {
+        $set: {
+          rating,
+          feedback: feedback.trim(),
+          reviewedAt: new Date()
+        }
+      },
+      {
+        returnDocument: "after",
+        runValidators: true
+      }
+    );
+
+    if (!job) {
+      return res.status(409).json({
+        success: false,
+        message: "Job not found or feedback already submitted"
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "Feedback submitted successfully",
+      job
+    });
+  } catch (error) {
+    console.error("Feedback error:", error.message);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to submit feedback"
+    });
+  }
+});
+
+// -------------------- TECHNICIAN: JOB DETAILS --------------------
+
 router.get("/:id", authMiddleware, async (req, res) => {
   try {
     if (req.user.role !== "technician") {
@@ -492,16 +988,34 @@ router.get("/:id", authMiddleware, async (req, res) => {
       });
     }
 
+    const technician = await User.findById(req.user.userId);
+
+    if (!technician || technician.role !== "technician") {
+      return res.status(404).json({
+        success: false,
+        message: "Technician not found"
+      });
+    }
+
     const job = await JobRequest.findOne({
       _id: req.params.id,
-      technician: req.user.userId,
-      status: { $in: JOB_PROGRESS }
+      $or: [
+        {
+          status: "Available",
+          technician: null,
+          service: { $in: technician.serviceCategories || [] }
+        },
+        {
+          technician: technician._id,
+          status: { $in: ASSIGNED_STATUSES }
+        }
+      ]
     }).populate("customer", "name email");
 
     if (!job) {
       return res.status(404).json({
         success: false,
-        message: "Job not found or not assigned to you"
+        message: "Job not found or not available to you"
       });
     }
 

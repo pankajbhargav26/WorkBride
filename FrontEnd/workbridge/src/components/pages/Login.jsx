@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API_BASE_URL } from "../../config/api.js";
-import "./login.css";
+import "./Login.css";
 
 function Login() {
   const navigate = useNavigate();
@@ -42,18 +42,23 @@ function Login() {
         throw new Error("Login response did not contain a token.");
       }
 
-      // Remove old keys and save the fresh login data.
-      localStorage.removeItem("workBridgeToken");
-      localStorage.removeItem("workBridgeUser");
-
-      localStorage.setItem("workbridgeToken", token);
+      localStorage.setItem("workBridgeToken", token);
 
       if (user) {
-        localStorage.setItem("workbridgeUser", JSON.stringify(user));
+        localStorage.setItem("workBridgeUser", JSON.stringify(user));
       }
 
-      navigate(state?.from === "/post-job" ? "/post-job" : "/");
+     if (user?.role === "technician") {
+  navigate("/worker-dashboard", { replace: true });
+} else {
+  navigate(
+    state?.from === "/post-job" ? "/post-job" : "/",
+    { replace: true }
+  );
+}
     } catch (error) {
+      console.error("Login error:", error);
+
       setMessage(
         error.response?.data?.message ||
           error.message ||

@@ -40,8 +40,7 @@ const jobRequestSchema = new mongoose.Schema(
     location: {
       type: String,
       required: true,
-      trim: true,
-      maxlength: 120
+      trim: true
     },
 
     date: {
@@ -52,20 +51,18 @@ const jobRequestSchema = new mongoose.Schema(
     urgency: {
       type: String,
       enum: ["Urgent", "Within a week", "Flexible"],
-      default: "Flexible",
-      required: true
+      default: "Flexible"
     },
 
     budget: {
       type: Number,
-      min: 0,
-      default: null
+      default: null,
+      min: 0
     },
 
     phone: {
       type: String,
-      required: true,
-      match: /^\d{10}$/
+      required: true
     },
 
     photos: {
@@ -75,13 +72,82 @@ const jobRequestSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["Available", "Accepted", "On the Way", "Work Started", "Completed"],
+      enum: [
+        "Available",
+        "Accepted",
+        "Visited",
+        "Estimate Given",
+        "In Progress",
+        "Completed"
+      ],
       default: "Available"
     },
 
     technician: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+      default: null
+    },
+
+    visitDetails: {
+      type: String,
+      default: "",
+      maxlength: 1000
+    },
+
+    visitedAt: {
+      type: Date,
+      default: null
+    },
+
+    estimatedCharges: {
+      type: Number,
+      min: 0,
+      default: null
+    },
+
+    estimateNotes: {
+      type: String,
+      default: "",
+      maxlength: 500
+    },
+
+    estimateStatus: {
+      type: String,
+      enum: ["Not Sent", "Pending", "Approved", "Rejected"],
+      default: "Not Sent"
+    },
+
+    estimateUpdatedAt: {
+      type: Date,
+      default: null
+    },
+
+    completionPhoto: {
+      type: String,
+      default: null
+    },
+
+    completedAt: {
+      type: Date,
+      default: null
+    },
+
+    rating: {
+      type: Number,
+      min: 1,
+      max: 5,
+      default: null
+    },
+
+    feedback: {
+      type: String,
+      default: "",
+      maxlength: 500
+    },
+
+    reviewedAt: {
+      type: Date,
       default: null
     }
   },
@@ -90,11 +156,8 @@ const jobRequestSchema = new mongoose.Schema(
   }
 );
 
-// Exact MongoDB collection name: jobs
-const JobRequest = mongoose.model(
+module.exports = mongoose.model(
   "JobRequest",
   jobRequestSchema,
   "jobs"
 );
-
-module.exports = JobRequest;
