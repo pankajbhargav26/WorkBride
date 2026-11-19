@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import "./PostJob.css";
+import DiagnosisAssistant from "./DiagnosisAssistant.jsx";
 
 const SERVICES = [
   { value: "plumbing", icon: "🔧", label: "Plumbing" },
@@ -8,10 +9,22 @@ const SERVICES = [
   { value: "ac-service", icon: "❄️", label: "AC & Appliances" },
   { value: "painting", icon: "🎨", label: "Painting" },
   { value: "carpentry", icon: "🔨", label: "Carpentry" },
+  { value: "handyman", icon: "🪚", label: "Handyman" },
   { value: "shifting", icon: "🚚", label: "Packers & Movers" },
   { value: "gardening", icon: "🌿", label: "Gardening" },
   { value: "other", icon: "✨", label: "Other" },
 ];
+
+const DIAGNOSIS_SERVICE_MAP = {
+  plumbing: "plumbing",
+  electrical: "electrical",
+  cleaning: "cleaning",
+  "ac-repair": "ac-service",
+  painting: "painting",
+  carpentry: "carpentry",
+  handyman: "handyman",
+  moving: "shifting",
+};
 
 const URGENCY = [
   { value: "Urgent", icon: "⚡", hint: "Within 24 hours" },
@@ -75,6 +88,15 @@ function PostJob() {
   }, [formData]);
 
   const selected = SERVICES.find((s) => s.value === formData.service);
+
+  const handleDiagnosisApply = (suggestion) => {
+    setFormData((previous) => ({
+      ...previous,
+      service: DIAGNOSIS_SERVICE_MAP[suggestion.serviceCategoryKey] || previous.service,
+      title: suggestion.title.slice(0, 120),
+      description: suggestion.summary.slice(0, MAX_DESC),
+    }));
+  };
 
   const handleChange = (e) => {
     let { name, value } = e.target;
@@ -209,6 +231,8 @@ function PostJob() {
                     title="Tell us about the job"
                     text="Give professionals enough information to understand your requirement."
                   />
+
+                  <DiagnosisAssistant onApply={handleDiagnosisApply} />
 
                   <div className="form-group">
                     <label>
