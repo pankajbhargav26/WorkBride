@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API_BASE_URL } from "../config/api.js";
+import DiagnosisChatbot from "./DiagnosisChatbot.jsx";
 import "./PostJob.css";
 
 const SERVICES = [
@@ -102,6 +103,31 @@ function PostJob() {
   }, [formData]);
 
   const selected = SERVICES.find((s) => s.value === formData.service);
+
+  const applyDiagnosis = ({ service, diagnosis, userMessages }) => {
+    if (!SERVICES.some((option) => option.value === service)) {
+      setFormError("Diagnosis returned an unsupported service. Please select a service manually.");
+      return;
+    }
+
+    const problem = userMessages.join(" ").trim();
+    const title = userMessages[0]?.trim() || problem;
+    const description = [
+      `Customer description: ${problem}`,
+      diagnosis ? `Possible issue: ${diagnosis}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n")
+      .slice(0, MAX_DESC);
+
+    setFormData((previous) => ({
+      ...previous,
+      service,
+      title: title.slice(0, 120),
+      description,
+    }));
+    setFormError("");
+  };
 
   const handleChange = (e) => {
     let { name, value } = e.target;
@@ -305,6 +331,7 @@ function PostJob() {
           <div className="post-job-container">
             {/* ================= FORM ================= */}
             <div className="post-job-form-wrapper">
+              <DiagnosisChatbot onDiagnosisComplete={applyDiagnosis} />
               <form className="post-job-form" onSubmit={handleSubmit}>
                 {/* 01 SERVICE */}
                 <div className="form-section">

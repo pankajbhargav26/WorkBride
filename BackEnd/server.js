@@ -8,6 +8,7 @@ require("dotenv").config();
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
 const jobRoutes = require("./routes/jobRoutes");
+const diagnosisRoutes = require("./routes/diagnosisRoutes");
 
 const app = express();
 
@@ -19,6 +20,7 @@ app.use(express.json());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api/auth", authRoutes);
 app.use("/api/jobs", jobRoutes);
+app.use("/api/diagnosis", diagnosisRoutes);
 
 app.get("/", (req, res) => {
   res.send("Welcome to WorkBridge API!");
