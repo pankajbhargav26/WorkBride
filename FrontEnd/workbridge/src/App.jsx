@@ -10,10 +10,13 @@ import Services from "./components/Services.jsx";
 import Cities from "./components/Cities.jsx";
 import FindWorker from "./components/FindWorker.jsx";
 import PostJob from "./components/PostJob.jsx";
+import MyJobs from "./components/MyJobs.jsx";
 import Help from "./components/Help.jsx";
 import ServiceDetails from "./components/ServiceDetails.jsx";
 import Register from "./components/pages/Register";
 import Login from "./components/pages/Login";
+import WorkerDashboard from "./components/pages/WorkerDashboard";
+import JobDetails from "./components/pages/JobDetails.jsx"
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -39,10 +42,13 @@ function App() {
         <Route path="/cities" element={<Cities />} />
         <Route path="/workers" element={<FindWorker />} />
         <Route path="/post-job" element={<PostJob />} />
+        <Route path="/my-jobs" element={<MyJobs />} />
         <Route path="/help" element={<Help />} />
         <Route path="/services/:serviceName" element={<ServiceDetails />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/worker-dashboard"element={<WorkerDashboard />}/>
+        <Route path="/worker-dashboard/jobs/:jobId"element={<JobDetails />}/>
       </Routes>
 
       <Footer />

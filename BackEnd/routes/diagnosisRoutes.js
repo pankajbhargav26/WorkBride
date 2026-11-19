@@ -1,5 +1,6 @@
 const express = require("express");
 const { getDiagnosis } = require("../services/diagnosisService");
+const { getDiagnosisReply } = require("../services/diagnosisEngine");
 
 const router = express.Router();
 
@@ -7,6 +8,8 @@ const MAX_MESSAGES = 20;
 const MAX_MESSAGE_LENGTH = 1500;
 const MAX_TOTAL_MESSAGE_LENGTH = 10000;
 const MAX_CATEGORIES = 20;
+const LEGACY_MAX_MESSAGES = 10;
+const LEGACY_MAX_MESSAGE_LENGTH = 500;
 const SUPPORTED_CATEGORY_KEYS = new Set([
   "plumbing",
   "electrical",
@@ -93,6 +96,43 @@ function validateRequest(body) {
 
   return null;
 }
+
+router.post("/", (req, res) => {
+  const { messages } = req.body || {};
+  if (
+    !Array.isArray(messages) ||
+    messages.length === 0 ||
+    messages.length > LEGACY_MAX_MESSAGES ||
+    messages[messages.length - 1]?.role !== "user" ||
+    !messages.every(
+      (message) =>
+        message &&
+        ["user", "assistant"].includes(message.role) &&
+        typeof message.content === "string" &&
+        message.content.trim().length > 0 &&
+        message.content.length <= LEGACY_MAX_MESSAGE_LENGTH
+    )
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: `Provide 1-${LEGACY_MAX_MESSAGES} conversation messages, ending with a user message of at most ${LEGACY_MAX_MESSAGE_LENGTH} characters`,
+    });
+  }
+
+  try {
+    const result = getDiagnosisReply(messages);
+    return res.json({
+      success: true,
+      ...result,
+    });
+  } catch (error) {
+    console.error("Legacy diagnosis request failed:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: "The diagnosis could not be completed. Please try again.",
+    });
+  }
+});
 
 router.post("/chat", async (req, res) => {
   const validationError = validateRequest(req.body);

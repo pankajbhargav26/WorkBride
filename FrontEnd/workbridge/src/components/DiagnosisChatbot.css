@@ -1,0 +1,239 @@
+.diagnosis-chat {
+  padding: 30px 36px;
+  border-bottom: 1px solid #f0eef6;
+  background: linear-gradient(135deg, #fbfaff, #f8faff);
+}
+
+.diagnosis-chat-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.diagnosis-chat-avatar {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #1769ff, #6d35e8);
+  color: #fff;
+  font-size: 22px;
+}
+
+.diagnosis-chat-header h2 {
+  margin: 0 0 4px;
+  color: #12121a;
+  font-size: 18px;
+  font-weight: 750;
+}
+
+.diagnosis-chat-header p {
+  margin: 0;
+  color: #7b7b8c;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.diagnosis-chat-status {
+  margin-left: auto;
+  padding: 7px 11px;
+  border: 1px solid #dcefe4;
+  border-radius: 20px;
+  background: #f0faf4;
+  color: #237a4b;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.diagnosis-chat-conversation {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 4px 2px 14px;
+  scroll-behavior: smooth;
+}
+
+.diagnosis-chat-message {
+  max-width: min(82%, 560px);
+  padding: 12px 15px;
+  border-radius: 16px;
+  font-size: 14px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.diagnosis-chat-message.assistant {
+  align-self: flex-start;
+  border: 1px solid #e8e6f0;
+  border-bottom-left-radius: 5px;
+  background: #fff;
+  color: #343444;
+}
+
+.diagnosis-chat-message.user {
+  align-self: flex-end;
+  border-bottom-right-radius: 5px;
+  background: linear-gradient(135deg, #1769ff, #6d35e8);
+  color: #fff;
+}
+
+.diagnosis-chat-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+
+.diagnosis-chat-suggestions button {
+  padding: 8px 11px;
+  border: 1px solid #ded9f0;
+  border-radius: 18px;
+  background: #fff;
+  color: #50466d;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.diagnosis-chat-suggestions button:hover:not(:disabled) {
+  border-color: #9c83e7;
+  background: #f6f2ff;
+}
+
+.diagnosis-chat-input {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 8px;
+  border: 1px solid #e4e0ef;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 5px 18px rgba(30, 20, 80, 0.05);
+}
+
+.diagnosis-chat-input textarea {
+  width: 100%;
+  min-height: 44px;
+  max-height: 100px;
+  resize: vertical;
+  padding: 10px 12px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #252432;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.diagnosis-chat-input textarea::placeholder {
+  color: #9895a8;
+}
+
+.diagnosis-chat-input button,
+.diagnosis-chat-restart {
+  flex: 0 0 auto;
+  min-height: 42px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #1769ff, #6d35e8);
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.diagnosis-chat-input button:hover:not(:disabled),
+.diagnosis-chat-restart:hover {
+  transform: translateY(-1px);
+}
+
+.diagnosis-chat-input button:disabled,
+.diagnosis-chat-suggestions button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.diagnosis-chat-result {
+  margin: 4px 0 14px;
+  padding: 15px 17px;
+  border: 1px solid #d8ebdf;
+  border-radius: 14px;
+  background: #f3fbf6;
+  color: #225d3c;
+}
+
+.diagnosis-chat-result strong {
+  font-size: 14px;
+}
+
+.diagnosis-chat-result p {
+  margin: 6px 0;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.diagnosis-chat-result small {
+  display: block;
+  color: #557764;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.diagnosis-chat-error {
+  margin: 0 0 12px;
+  color: #b42318;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.diagnosis-chat-restart {
+  min-height: 40px;
+  background: #eee9fb;
+  color: #5433a4;
+}
+
+@media (max-width: 680px) {
+  .diagnosis-chat {
+    padding: 24px 18px;
+  }
+
+  .diagnosis-chat-header {
+    align-items: flex-start;
+  }
+
+  .diagnosis-chat-status {
+    display: none;
+  }
+
+  .diagnosis-chat-header h2 {
+    font-size: 16px;
+  }
+
+  .diagnosis-chat-header p {
+    font-size: 12px;
+  }
+
+  .diagnosis-chat-message {
+    max-width: 92%;
+    font-size: 13px;
+  }
+
+  .diagnosis-chat-input {
+    align-items: stretch;
+  }
+
+  .diagnosis-chat-input button {
+    padding: 0 14px;
+  }
+}

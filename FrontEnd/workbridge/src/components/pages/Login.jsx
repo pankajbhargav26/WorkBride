@@ -1,11 +1,13 @@
 
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
-import "./login.css";
+import { API_BASE_URL } from "../../config/api.js";
+import "./Login.css";
 
 function Login() {
   const navigate = useNavigate();
+  const { state } = useLocation();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -29,26 +31,38 @@ function Login() {
 
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/auth/login",
+        `${API_BASE_URL}/auth/login`,
         formData
       );
 
-      if (response.data.token) {
-        localStorage.setItem("workbridgeToken", response.data.token);
+      const token = response.data.token;
+      const user = response.data.user;
+
+      if (!token) {
+        throw new Error("Login response did not contain a token.");
       }
 
-      if (response.data.user) {
-        localStorage.setItem(
-          "workbridgeUser",
-          JSON.stringify(response.data.user)
-        );
+      localStorage.setItem("workBridgeToken", token);
+
+      if (user) {
+        localStorage.setItem("workBridgeUser", JSON.stringify(user));
       }
 
-      navigate("/");
+     if (user?.role === "technician") {
+  navigate("/worker-dashboard", { replace: true });
+} else {
+  navigate(
+    state?.from === "/post-job" ? "/post-job" : "/",
+    { replace: true }
+  );
+}
     } catch (error) {
+      console.error("Login error:", error);
+
       setMessage(
         error.response?.data?.message ||
-          "Login failed. Check your email and password."
+          error.message ||
+          "Login failed. Please try again."
       );
     } finally {
       setLoading(false);
@@ -58,9 +72,7 @@ function Login() {
   return (
     <div className="login-page">
       <div className="login-card">
-        <Link to="/" className="login-brand">
-          WorkBridge
-        </Link>
+        <Link to="/" className="login-brand">WorkBridge</Link>
 
         <h1>Welcome Back!</h1>
         <p className="login-subtitle">
@@ -75,7 +87,6 @@ function Login() {
             id="login-email"
             type="email"
             name="email"
-            placeholder="Enter your email"
             value={formData.email}
             onChange={handleChange}
             required
@@ -86,7 +97,6 @@ function Login() {
             id="login-password"
             type="password"
             name="password"
-            placeholder="Enter your password"
             value={formData.password}
             onChange={handleChange}
             required
@@ -101,9 +111,7 @@ function Login() {
           Don't have an account? <Link to="/register">Register</Link>
         </p>
 
-        <Link to="/" className="login-home-link">
-          Back to Home
-        </Link>
+        <Link to="/" className="login-home-link">Back to Home</Link>
       </div>
     </div>
   );

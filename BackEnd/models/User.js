@@ -38,7 +38,8 @@ const userSchema = new mongoose.Schema(
         "Cleaning",
         "Painting",
         "Carpentry",
-        "Handyman"
+        "Handyman",
+        "Shifting"
       ],
       default: []
     }

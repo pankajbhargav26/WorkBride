@@ -1,29 +1,31 @@
 import { useState, useMemo } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import axios from "axios";
+import { API_BASE_URL } from "../config/api.js";
+import DiagnosisChatbot from "./DiagnosisChatbot.jsx";
 import "./PostJob.css";
 import DiagnosisAssistant from "./DiagnosisAssistant.jsx";
 
 const SERVICES = [
-  { value: "plumbing", icon: "🔧", label: "Plumbing" },
-  { value: "electrical", icon: "⚡", label: "Electrical" },
-  { value: "cleaning", icon: "🧹", label: "Cleaning" },
-  { value: "ac-service", icon: "❄️", label: "AC & Appliances" },
-  { value: "painting", icon: "🎨", label: "Painting" },
-  { value: "carpentry", icon: "🔨", label: "Carpentry" },
-  { value: "handyman", icon: "🪚", label: "Handyman" },
-  { value: "shifting", icon: "🚚", label: "Packers & Movers" },
-  { value: "gardening", icon: "🌿", label: "Gardening" },
-  { value: "other", icon: "✨", label: "Other" },
+  { value: "Plumbing", icon: "🔧", label: "Plumbing" },
+  { value: "Electrical", icon: "⚡", label: "Electrical" },
+  { value: "Cleaning", icon: "🧹", label: "Cleaning" },
+  { value: "AC Repair", icon: "❄️", label: "AC Repair" },
+  { value: "Painting", icon: "🎨", label: "Painting" },
+  { value: "Carpentry", icon: "🔨", label: "Carpentry" },
+  { value: "Shifting", icon: "🚚", label: "Shifting" },
+  { value: "Handyman", icon: "🛠️", label: "Handyman" },
 ];
 
 const DIAGNOSIS_SERVICE_MAP = {
-  plumbing: "plumbing",
-  electrical: "electrical",
-  cleaning: "cleaning",
-  "ac-repair": "ac-service",
-  painting: "painting",
-  carpentry: "carpentry",
-  handyman: "handyman",
-  moving: "shifting",
+  plumbing: "Plumbing",
+  electrical: "Electrical",
+  cleaning: "Cleaning",
+  "ac-repair": "AC Repair",
+  painting: "Painting",
+  carpentry: "Carpentry",
+  handyman: "Handyman",
+  moving: "Shifting",
 };
 
 const URGENCY = [
@@ -53,6 +55,14 @@ const INITIAL = {
 
 const MAX_DESC = 500;
 const MAX_PHOTOS = 5;
+const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+const MAX_TOTAL_PHOTO_BYTES = 10 * 1024 * 1024;
+const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+const SERVICE_ALIASES = {
+  "ac & appliances": "AC Repair",
+  "packers & movers": "Shifting",
+  moving: "Shifting",
+};
 
 const CONFETTI = Array.from({ length: 28 }, (_, i) => ({
   left: `${(i * 37) % 100}%`,
@@ -74,10 +84,27 @@ function SectionHeading({ num, title, text }) {
 }
 
 function PostJob() {
-  const [formData, setFormData] = useState(INITIAL);
+  const { state } = useLocation();
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState(() => {
+    const serviceName = typeof state?.service === "string" ? state.service.trim() : "";
+    const service = SERVICES.find(
+      (option) =>
+        option.value.toLowerCase() === serviceName.toLowerCase() ||
+        option.label.toLowerCase() === serviceName.toLowerCase()
+    );
+    const aliasedService = SERVICE_ALIASES[serviceName.toLowerCase()];
+
+    return {
+      ...INITIAL,
+      service: service?.value || aliasedService || "",
+      title: typeof state?.subService === "string" ? state.subService : "",
+    };
+  });
   const [photos, setPhotos] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [formError, setFormError] = useState("");
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -90,12 +117,44 @@ function PostJob() {
   const selected = SERVICES.find((s) => s.value === formData.service);
 
   const handleDiagnosisApply = (suggestion) => {
+    const service = DIAGNOSIS_SERVICE_MAP[suggestion.serviceCategoryKey];
+    if (suggestion.serviceCategoryKey && !service) {
+      setFormError("Diagnosis returned an unsupported service. Please select a service manually.");
+      return;
+    }
+
     setFormData((previous) => ({
       ...previous,
-      service: DIAGNOSIS_SERVICE_MAP[suggestion.serviceCategoryKey] || previous.service,
+      service: service || previous.service,
       title: suggestion.title.slice(0, 120),
       description: suggestion.summary.slice(0, MAX_DESC),
     }));
+    setFormError("");
+  };
+
+  const applyDiagnosis = ({ service, diagnosis, userMessages }) => {
+    if (!SERVICES.some((option) => option.value === service)) {
+      setFormError("Diagnosis returned an unsupported service. Please select a service manually.");
+      return;
+    }
+
+    const problem = userMessages.join(" ").trim();
+    const title = userMessages[0]?.trim() || problem;
+    const description = [
+      `Customer description: ${problem}`,
+      diagnosis ? `Possible issue: ${diagnosis}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n")
+      .slice(0, MAX_DESC);
+
+    setFormData((previous) => ({
+      ...previous,
+      service,
+      title: title.slice(0, 120),
+      description,
+    }));
+    setFormError("");
   };
 
   const handleChange = (e) => {
@@ -103,16 +162,40 @@ function PostJob() {
     if (name === "phone") value = value.replace(/\D/g, "").slice(0, 10);
     if (name === "description") value = value.slice(0, MAX_DESC);
     setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormError("");
   };
 
   const handlePhotos = (e) => {
-    const files = Array.from(e.target.files).filter((f) => f.size <= 5 * 1024 * 1024);
+    const files = Array.from(e.target.files);
+    const totalSize = photos.reduce((total, photo) => total + photo.file.size, 0);
+    if (files.some((file) => !PHOTO_TYPES.includes(file.type))) {
+      setFormError("Please upload JPG, PNG, GIF or WebP photos only.");
+      e.target.value = "";
+      return;
+    }
+    if (files.some((file) => file.size > MAX_PHOTO_BYTES)) {
+      setFormError("Each photo must be 5MB or smaller.");
+      e.target.value = "";
+      return;
+    }
+    if (photos.length + files.length > MAX_PHOTOS) {
+      setFormError(`You can upload up to ${MAX_PHOTOS} photos.`);
+      e.target.value = "";
+      return;
+    }
+    if (totalSize + files.reduce((total, file) => total + file.size, 0) > MAX_TOTAL_PHOTO_BYTES) {
+      setFormError("The combined size of your photos must be 10MB or less.");
+      e.target.value = "";
+      return;
+    }
+
     const next = files.map((file) => ({
       file,
       url: URL.createObjectURL(file),
       id: `${file.name}-${file.lastModified}-${Math.random()}`,
     }));
-    setPhotos((prev) => [...prev, ...next].slice(0, MAX_PHOTOS));
+    setPhotos((prev) => [...prev, ...next]);
+    setFormError("");
     e.target.value = "";
   };
 
@@ -124,24 +207,107 @@ function PostJob() {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setFormError("");
+
+    const token = (localStorage.getItem("workBridgeToken") || localStorage.getItem("workbridgeToken"));
+    if (!token) {
+      navigate("/login", { state: { from: "/post-job" } });
+      return;
+    }
+
     setSubmitting(true);
 
-    // Replace this timeout with your real API call (axios.post) later
-    setTimeout(() => {
-      console.log("Job Posted:", { ...formData, photos: photos.map((p) => p.file) });
+    try {
+      let photoUrls = [];
+
+      if (photos.length > 0) {
+        const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME?.trim();
+        const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET?.trim();
+
+        if (!cloudName || !uploadPreset) {
+          throw new Error(
+            "Photo uploads need VITE_CLOUDINARY_CLOUD_NAME and VITE_CLOUDINARY_UPLOAD_PRESET in your frontend .env file."
+          );
+        }
+
+        photoUrls = await Promise.all(
+          photos.map(async ({ file }) => {
+            const uploadData = new FormData();
+            uploadData.append("file", file);
+            uploadData.append("upload_preset", uploadPreset);
+
+            const response = await axios.post(
+              `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+              uploadData
+            );
+            const photoUrl = response.data?.secure_url;
+
+            if (typeof photoUrl !== "string" || !photoUrl.startsWith("https://")) {
+              throw new Error("A photo upload did not return a secure image URL.");
+            }
+
+            return photoUrl;
+          })
+        );
+      }
+
+      await axios.post(
+        `${API_BASE_URL}/jobs`,
+        {
+          service: formData.service,
+          title: formData.title,
+          description: formData.description,
+          location: formData.location,
+          date: formData.date,
+          urgency: formData.urgency,
+          budget: formData.budget,
+          phone: formData.phone,
+          photos: photoUrls,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
       photos.forEach((p) => URL.revokeObjectURL(p.url));
       setPhotos([]);
       setFormData(INITIAL);
-      setSubmitting(false);
       setSubmitted(true);
       window.scrollTo({ top: 0, behavior: "smooth" });
-    }, 900);
+    } catch (error) {
+      setFormError(
+        error.response?.data?.message ||
+          (error.code === "ERR_NETWORK"
+            ? "Server se connect nahi ho pa raha. Aapki request save nahi hui—backend aur database start karke dobara try karein."
+            : null) ||
+          error.message ||
+          "Unable to post your job. Please check your connection and try again."
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <>
+      {(submitting || formError) && (
+        <div
+          className={`post-job-notice ${formError ? "error" : "loading"}`}
+          role={formError ? "alert" : "status"}
+          aria-live="polite"
+        >
+          <span>
+            {formError || "Aapki service request save ho rahi hai..."}
+          </span>
+          {formError && (
+            <button type="button" onClick={() => setFormError("")} aria-label="Dismiss message">
+              ×
+            </button>
+          )}
+        </div>
+      )}
       <main className="post-job-page">
         {/* ================= HERO ================= */}
         <section className="post-job-hero">
@@ -193,6 +359,7 @@ function PostJob() {
           <div className="post-job-container">
             {/* ================= FORM ================= */}
             <div className="post-job-form-wrapper">
+              <DiagnosisChatbot onDiagnosisComplete={applyDiagnosis} />
               <form className="post-job-form" onSubmit={handleSubmit}>
                 {/* 01 SERVICE */}
                 <div className="form-section">
@@ -241,6 +408,7 @@ function PostJob() {
                     <input
                       type="text"
                       name="title"
+                      maxLength={120}
                       value={formData.title}
                       onChange={handleChange}
                       placeholder="Example: Fix leaking bathroom tap"
@@ -286,6 +454,7 @@ function PostJob() {
                       <input
                         type="text"
                         name="location"
+                        maxLength={120}
                         value={formData.location}
                         onChange={handleChange}
                         placeholder="Enter your city or locality"
@@ -366,11 +535,11 @@ function PostJob() {
                   />
 
                   <label className="upload-box">
-                    <input type="file" accept="image/*" multiple onChange={handlePhotos} />
+                    <input type="file" accept={PHOTO_TYPES.join(",")} multiple onChange={handlePhotos} />
                     <div className="upload-icon">📷</div>
                     <strong>Upload job photos</strong>
                     <span>Click to browse or drag and drop</span>
-                    <small>JPG, PNG up to 5MB · max {MAX_PHOTOS} photos</small>
+                    <small>JPG, PNG, GIF or WebP up to 5MB · max {MAX_PHOTOS} photos (10MB total)</small>
                   </label>
 
                   {photos.length > 0 && (
@@ -403,6 +572,7 @@ function PostJob() {
                       <input
                         type="text"
                         name="name"
+                        maxLength={100}
                         value={formData.name}
                         onChange={handleChange}
                         placeholder="Enter your name"

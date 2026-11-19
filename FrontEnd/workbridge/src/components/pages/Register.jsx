@@ -1,54 +1,104 @@
 
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
-import "./register.css";
+import { API_BASE_URL } from "../../config/api.js";
+import "./Register.css";
+
+const SERVICES = [
+  "Electrical",
+  "Plumbing",
+  "AC Repair",
+  "Cleaning",
+  "Painting",
+  "Carpentry",
+  "Handyman",
+  "Shifting",
+];
 
 function Register() {
   const navigate = useNavigate();
+  const { state } = useLocation();
 
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
     role: "customer",
+    serviceCategories: [],
   });
 
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
+    const { name, value } = e.target;
+
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [name]: value,
     });
+  };
+
+  const handleServiceChange = (e) => {
+    const { value, checked } = e.target;
+
+    setFormData((prev) => ({
+      ...prev,
+      serviceCategories: checked
+        ? [...prev.serviceCategories, value]
+        : prev.serviceCategories.filter((service) => service !== value),
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage("");
+
+    if (
+      formData.role === "technician" &&
+      formData.serviceCategories.length === 0
+    ) {
+      setMessage("Please select at least one service category.");
+      return;
+    }
+
     setLoading(true);
 
     try {
+      const payload = {
+        ...formData,
+        serviceCategories:
+          formData.role === "technician"
+            ? formData.serviceCategories
+            : [],
+      };
+
       const response = await axios.post(
-        "http://localhost:5000/api/auth/register",
-        formData
+        `${API_BASE_URL}/auth/register`,
+        payload
       );
 
       if (response.data.token) {
-        localStorage.setItem("workbridgeToken", response.data.token);
+        localStorage.setItem("workBridgeToken", response.data.token);
       }
 
       if (response.data.user) {
         localStorage.setItem(
-          "workbridgeUser",
+          "workBridgeUser",
           JSON.stringify(response.data.user)
         );
       }
 
       setMessage("Registration successful!");
 
-      navigate("/");
+      const userRole = response.data.user?.role || formData.role;
+
+      if (userRole === "technician") {
+        navigate("/worker-dashboard");
+      } else {
+        navigate(state?.from === "/post-job" ? "/post-job" : "/");
+      }
     } catch (error) {
       setMessage(
         error.response?.data?.message ||
@@ -67,6 +117,7 @@ function Register() {
         </Link>
 
         <h1>Create Account</h1>
+
         <p className="register-subtitle">
           Join WorkBridge and get started today.
         </p>
@@ -104,7 +155,7 @@ function Register() {
             placeholder="Create a password"
             value={formData.password}
             onChange={handleChange}
-            minLength={6}
+            minLength={8}
             required
           />
 
@@ -118,6 +169,24 @@ function Register() {
             <option value="customer">Customer</option>
             <option value="technician">Technician</option>
           </select>
+
+          {formData.role === "technician" && (
+            <div className="service-selection">
+              <label>Select Your Services</label>
+
+              {SERVICES.map((service) => (
+                <label key={service} className="service-option">
+                  <input
+                    type="checkbox"
+                    value={service}
+                    checked={formData.serviceCategories.includes(service)}
+                    onChange={handleServiceChange}
+                  />
+                  {service}
+                </label>
+              ))}
+            </div>
+          )}
 
           <button type="submit" disabled={loading}>
             {loading ? "Creating Account..." : "Register"}

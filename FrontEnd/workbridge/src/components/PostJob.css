@@ -625,6 +625,45 @@
   background: linear-gradient(135deg, #f8f6ff, #f2f6ff);
 }
 
+.post-job-notice {
+  position: fixed;
+  top: 96px;
+  left: 50%;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  width: min(560px, calc(100% - 32px));
+  padding: 16px 18px;
+  border: 1px solid #fecaca;
+  border-radius: 14px;
+  background: #fef2f2;
+  color: #991b1b;
+  font-size: 14px;
+  line-height: 1.5;
+  box-shadow: 0 12px 36px rgba(30, 20, 40, 0.2);
+  transform: translateX(-50%);
+}
+
+.post-job-notice.loading {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1e40af;
+}
+
+.post-job-notice button {
+  flex: 0 0 auto;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
 .post-job-submit strong {
   display: block;
   margin-bottom: 4px;

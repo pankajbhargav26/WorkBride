@@ -1,0 +1,387 @@
+
+.job-details-page {
+  max-width: 1200px;
+  margin: auto;
+  padding: 35px 25px 60px;
+  color: #202b3c;
+  min-height: 80vh;
+}
+
+.back-dashboard {
+  display: inline-block;
+  color: #2563eb;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 28px;
+}
+
+.job-details-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.details-service {
+  color: #2563eb;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.job-details-header h1 {
+  font-size: 30px;
+  margin: 10px 0;
+}
+
+.job-details-header p {
+  color: #718096;
+  margin: 0;
+}
+
+.details-status {
+  background: #e8f8ee;
+  color: #15803d;
+  padding: 9px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.job-details-layout {
+  display: grid;
+  grid-template-columns: 1.7fr 1fr;
+  gap: 25px;
+  align-items: start;
+}
+
+.job-details-main {
+  display: grid;
+  gap: 20px;
+}
+
+.details-box {
+  background: white;
+  border: 1px solid #e5eaf1;
+  border-radius: 13px;
+  padding: 25px;
+}
+
+.details-box h2 {
+  font-size: 19px;
+  margin: 0 0 20px;
+}
+
+.details-box > p {
+  color: #64748b;
+  line-height: 1.8;
+  font-size: 14px;
+}
+
+.details-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 25px;
+}
+
+.details-info-grid div {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.details-info-grid small,
+.customer-detail-item small,
+.accept-box > small {
+  color: #8490a1;
+  font-size: 12px;
+}
+
+.details-info-grid strong {
+  font-size: 14px;
+}
+
+.no-photos {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.job-photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.job-photos img {
+  width: 130px;
+  height: 110px;
+  object-fit: cover;
+  border-radius: 9px;
+}
+
+/* Customer Sidebar */
+
+.job-customer-sidebar {
+  display: grid;
+  gap: 20px;
+}
+
+.customer-box {
+  text-align: center;
+}
+
+.customer-avatar {
+  width: 75px;
+  height: 75px;
+  border-radius: 50%;
+  background: #eaf2ff;
+  color: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  font-weight: 700;
+  margin: 0 auto 12px;
+}
+
+.customer-box h3 {
+  margin: 0 0 25px;
+  font-size: 18px;
+}
+
+.customer-detail-item {
+  display: flex;
+  text-align: left;
+  align-items: flex-start;
+  gap: 13px;
+  padding: 15px 0;
+  border-top: 1px solid #edf0f5;
+}
+
+.customer-detail-item > span {
+  font-size: 19px;
+}
+
+.customer-detail-item div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.customer-detail-item strong {
+  font-size: 13px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+/* Accept Job */
+
+.accept-box h2 {
+  font-size: 24px;
+  color: #172d55;
+  margin: 7px 0;
+}
+
+.accept-box p {
+  font-size: 13px;
+  color: #718096;
+  line-height: 1.6;
+}
+
+.accept-job-button {
+  width: 100%;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 13px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 12px;
+}
+
+.accept-job-button:hover {
+  background: #174db5;
+}
+
+.accept-job-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Workflow Forms */
+
+.workflow-box form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.workflow-box label {
+  color: #475569;
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 5px;
+}
+
+.workflow-box input,
+.workflow-box textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #dce3ed;
+  border-radius: 8px;
+  padding: 12px;
+  font-family: inherit;
+  font-size: 14px;
+  color: #202b3c;
+  outline: none;
+}
+
+.workflow-box textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.workflow-box input:focus,
+.workflow-box textarea:focus {
+  border-color: #2563eb;
+}
+
+.workflow-box .accept-job-button {
+  margin-top: 5px;
+}
+
+.workflow-message {
+  border-left: 4px solid #2563eb;
+}
+
+.workflow-message h2 {
+  margin-bottom: 10px;
+}
+
+.workflow-message p {
+  margin-bottom: 0;
+}
+
+.estimate-amount {
+  font-size: 28px;
+  font-weight: 700;
+  color: #172d55;
+  margin-bottom: 12px;
+}
+
+.completion-photo {
+  width: 100%;
+  max-width: 350px;
+  max-height: 250px;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.job-error {
+  background: #fff1f2;
+  color: #be123c;
+  border: 1px solid #fecdd3;
+  border-radius: 8px;
+  padding: 12px 15px;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.job-message {
+  text-align: center;
+  padding: 100px 20px;
+  color: #64748b;
+}
+
+.job-not-found {
+  text-align: center;
+  padding: 100px 20px;
+}
+
+.job-not-found p {
+  color: #64748b;
+}
+
+.job-not-found a {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+/* Responsive */
+
+@media (max-width: 800px) {
+  .job-details-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .job-details-header h1 {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 500px) {
+  .job-details-page {
+    padding: 25px 15px;
+  }
+
+  .job-details-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .details-info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .details-box {
+    padding: 19px;
+  }
+}
+
+
+/* ===== Job workflow additions ===== */
+.charges-table { display: grid; gap: 0.5rem; margin-bottom: 0.75rem; }
+
+.charges-table > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  color: #475467;
+}
+
+.charges-table strong { color: #172033; }
+.charge-struck { text-decoration: line-through; color: #98a2b3 !important; }
+
+.charges-total {
+  margin-top: 0.25rem;
+  padding-top: 0.6rem;
+  border-top: 1px dashed #d0d5dd;
+  font-weight: 700;
+}
+
+.charges-total strong { font-size: 1.2rem; color: #4f46e5; }
+.charges-hint { font-size: 0.82rem; color: #98a2b3; }
+
+.not-proceed-box { border-left: 4px solid #ef4444; }
+
+.secondary-job-button {
+  margin-top: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  border: 1px solid #fca5a5;
+  border-radius: 0.65rem;
+  background: #fff;
+  color: #b91c1c;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.secondary-job-button:hover:not(:disabled) { background: #fef2f2; }
+.secondary-job-button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.rating-stars { color: #f59e0b; font-size: 1.4rem; letter-spacing: 2px; }
+.rating-stars span { color: #d0d5dd; }
